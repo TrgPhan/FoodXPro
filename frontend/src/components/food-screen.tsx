@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import FoodCard from "@/components/food-card"
 import Header from "@/components/ui/header"
-import { CheckCircle, XCircle, Utensils, RefreshCw, Loader2, AlertCircle, Settings } from "lucide-react"
+import { CheckCircle, XCircle, Utensils, RefreshCw, Loader2, AlertCircle, Settings, Search, X } from "lucide-react"
 import { useRecipes } from "@/hooks/useFood"
 import { type SortBy, type SortOrder } from "@/lib/food"
 
@@ -31,7 +31,9 @@ export default function FoodScreen() {
   const [showFilters, setShowFilters] = useState(false)
   const [includeAllergies, setIncludeAllergies] = useState(false)
   const [activeTab, setActiveTab] = useState("du")
-  
+  const [showSearch, setShowSearch] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
+
   const {
     sufficientRecipes,
     insufficientRecipes,
@@ -127,6 +129,49 @@ export default function FoodScreen() {
     setShowFilters(false) // Hide filters when switching tabs
   }
 
+  // Handle search toggle
+  const handleSearchToggle = () => {
+    setShowSearch(!showSearch)
+    if (showSearch) {
+      setSearchQuery("") // Clear search when closing
+    }
+  }
+
+  // Handle search input change
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value)
+  }
+
+  // Handle search close
+  const handleSearchClose = () => {
+    setShowSearch(false)
+    setSearchQuery("")
+  }
+
+  // Filter recipes based on search query
+  const filterRecipes = (recipes: any[], query: string) => {
+    if (!query.trim()) return recipes
+
+    const searchTerm = query.toLowerCase().trim()
+    return recipes.filter((recipeData) => {
+      const recipe = recipeData.recipe
+      const name = recipe.name.toLowerCase()
+
+      return name.includes(searchTerm)
+    })
+  }
+
+  // Get filtered recipes for current tab
+  const getFilteredRecipes = () => {
+    if (activeTab === "du") {
+      return filterRecipes(sufficientRecipes || [], searchQuery)
+    } else {
+      return filterRecipes(insufficientRecipes || [], searchQuery)
+    }
+  }
+
+  const filteredRecipes = getFilteredRecipes()
+
   return (
     <div className="h-full bg-white flex flex-col">
       <Header
@@ -137,7 +182,7 @@ export default function FoodScreen() {
         gradientTo="to-amber-600"
       />
 
-      <div className="flex-1 overflow-hidden">
+      <div className={`flex-1 overflow-hidden ${showFilters ? 'h-[calc(100vh-400px)]' : 'h-full'}`}>
         <div className="px-6 py-4 h-full">
           {/* Controls */}
           <div className="flex items-center justify-between mb-4">
@@ -146,24 +191,50 @@ export default function FoodScreen() {
                 Tổng: {(sufficientRecipes?.length || 0) + (insufficientRecipes?.length || 0)} công thức
               </span>
             </div>
-            
+
             <div className="flex items-center gap-2">
+              {/* Search Bar */}
+              <div className="flex items-center ml-2">
+                <div className={`relative flex items-center transition-all duration-300 ease-in-out ${showSearch ? 'w-80' : 'w-10'
+                  }`}>
+                  <div className={`relative flex items-center bg-white border border-gray-300 rounded-lg overflow-hidden transition-all duration-300 ease-in-out ${showSearch ? 'w-full' : 'w-10'
+                    }`}>
+                    {showSearch && (
+                      <input
+                        type="text"
+                        placeholder="Tìm kiếm công thức..."
+                        value={searchQuery}
+                        onChange={handleSearchChange}
+                        className="w-full px-3 py-2 text-sm focus:outline-none"
+                        autoFocus
+                      />
+                    )}
+                    <button
+                      onClick={showSearch ? handleSearchClose : handleSearchToggle}
+                      className="flex items-center justify-center w-10 h-10 text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+                    >
+                      {showSearch ? <X size={18} /> : <Search size={18} />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setShowFilters(!showFilters)}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 h-10"
               >
                 <Settings size={16} />
                 Bộ lọc
               </Button>
-              
+
               <Button
                 variant="outline"
                 size="sm"
                 onClick={refresh}
                 disabled={loading}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 h-10"
               >
                 <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
                 Làm mới
@@ -302,6 +373,7 @@ export default function FoodScreen() {
             </Card>
           )}
 
+          {/* Tabs */}
           <Tabs defaultValue="du" className="h-full flex flex-col" onValueChange={handleTabChange}>
             <TabsList className="grid w-full max-w-md grid-cols-2 mb-4 flex-shrink-0">
               <TabsTrigger value="du" className="text-green-600 data-[state=active]:bg-green-50">
@@ -315,7 +387,7 @@ export default function FoodScreen() {
             </TabsList>
 
             <TabsContent value="du" className="flex-1 overflow-hidden">
-              <ScrollArea className="h-full pb-10">
+              <ScrollArea className={`h-full ${showFilters ? 'pb-30' : 'pb-10'}`}>
                 {sufficientLoading ? (
                   <div className="flex items-center justify-center py-12">
                     <div className="flex items-center gap-3 text-gray-600">
@@ -333,9 +405,19 @@ export default function FoodScreen() {
                       </p>
                     </div>
                   </div>
+                ) : filteredRecipes.length === 0 && searchQuery ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="text-center text-gray-600">
+                      <Search size={48} className="mx-auto mb-4 text-gray-400" />
+                      <h3 className="text-lg font-semibold mb-2">Không tìm thấy kết quả</h3>
+                      <p className="text-sm">
+                        Không có công thức nào phù hợp với từ khóa "{searchQuery}"
+                      </p>
+                    </div>
+                  </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-6 px-3 py-3">
-                    {(sufficientRecipes || []).map((recipeData, index) => (
+                    {(activeTab === "du" ? filteredRecipes : sufficientRecipes || []).map((recipeData, index) => (
                       <FoodCard
                         key={`sufficient-recipe-${recipeData.recipe.id}-${index}`}
                         recipe={recipeData.recipe}
@@ -351,7 +433,7 @@ export default function FoodScreen() {
             </TabsContent>
 
             <TabsContent value="thieu" className="flex-1 overflow-hidden">
-              <ScrollArea className="h-full pb-10">
+              <ScrollArea className={`h-full ${showFilters ? 'pb-30' : 'pb-10'}`}>
                 {insufficientLoading ? (
                   <div className="flex items-center justify-center py-12">
                     <div className="flex items-center gap-3 text-gray-600">
@@ -369,9 +451,19 @@ export default function FoodScreen() {
                       </p>
                     </div>
                   </div>
+                ) : filteredRecipes.length === 0 && searchQuery ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="text-center text-gray-600">
+                      <Search size={48} className="mx-auto mb-4 text-gray-400" />
+                      <h3 className="text-lg font-semibold mb-2">Không tìm thấy kết quả</h3>
+                      <p className="text-sm">
+                        Không có công thức nào phù hợp với từ khóa "{searchQuery}"
+                      </p>
+                    </div>
+                  </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-6 px-3 py-3">
-                    {(insufficientRecipes || []).map((recipeData, index) => (
+                    {(activeTab === "thieu" ? filteredRecipes : insufficientRecipes || []).map((recipeData, index) => (
                       <FoodCard
                         key={`insufficient-recipe-${recipeData.recipe.id}-${index}`}
                         recipe={recipeData.recipe}

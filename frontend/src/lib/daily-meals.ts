@@ -12,6 +12,7 @@ export interface MealItem {
   id: number
   name: string
   image: string
+  servings_eaten?: number
 }
 
 export interface NutritionItem {
@@ -39,9 +40,23 @@ export type EatAtType = 'breakfast' | 'lunch' | 'snack' | 'dinner'
 export interface AddMealParams {
   recipe_id: number
   eat_at: EatAtType
+  servings_eaten: number
 }
 
 export interface AddMealResponse {
+  success: boolean
+  message: string
+  meal?: MealItem
+}
+
+export interface EditMealParams {
+  recipe_id: number
+  eat_date: string
+  eat_at: EatAtType
+  new_servings_eaten: number
+}
+
+export interface EditMealResponse {
   success: boolean
   message: string
   meal?: MealItem
@@ -98,6 +113,7 @@ export let addMeal = async (params: AddMealParams): Promise<AddMealResponse> => 
     const query = new URLSearchParams()
     query.append('recipe_id', params.recipe_id.toString())
     query.append('eat_at', params.eat_at)
+    query.append('servings_eaten', params.servings_eaten.toString())
     const url = `${API_BASE_URL}/daily-meals/add?${query.toString()}`
     
     const data = await authenticatedRequest<AddMealResponse>(url, { method: 'POST' })
@@ -110,6 +126,31 @@ export let addMeal = async (params: AddMealParams): Promise<AddMealResponse> => 
     return data
   } catch (error) {
     console.error('Error adding meal:', error)
+    throw error
+  }
+}
+
+// Edit meal servings in daily meals
+export let editMeal = async (params: EditMealParams): Promise<EditMealResponse> => {
+  try {
+    console.log('✏️ Editing meal servings:', params)
+    
+    const query = new URLSearchParams()
+    query.append('recipe_id', params.recipe_id.toString())
+    query.append('eat_date', params.eat_date)
+    query.append('eat_at', params.eat_at)
+    query.append('new_servings_eaten', params.new_servings_eaten.toString())
+    const url = `${API_BASE_URL}/daily-meals/edit?${query.toString()}`
+    
+    const data = await authenticatedRequest<EditMealResponse>(url, { method: 'PUT' })
+    
+    // Clear cache for the specific date after editing meal
+    clearDailyMealsCache(params.eat_date)
+    
+    console.log('✅ Meal edited successfully:', data)
+    return data
+  } catch (error) {
+    console.error('Error editing meal:', error)
     throw error
   }
 }

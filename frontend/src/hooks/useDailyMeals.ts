@@ -11,8 +11,11 @@ import {
   clearDailyMealsCache,
   getMealWithCalories,
   addMeal,
+  editMeal,
   AddMealParams,
-  AddMealResponse
+  AddMealResponse,
+  EditMealParams,
+  EditMealResponse
 } from '../lib/daily-meals'
 
 export interface UseDailyMealsReturn {
@@ -31,6 +34,7 @@ export interface UseDailyMealsReturn {
   nutritionData: ReturnType<typeof getNutritionForProfile> | null
   mealSummary: ReturnType<typeof getMealSummary> | null
   addMeal: (params: AddMealParams) => Promise<AddMealResponse>
+  editMeal: (params: EditMealParams) => Promise<EditMealResponse>
 }
 
 export const useDailyMeals = (): UseDailyMealsReturn => {
@@ -135,6 +139,7 @@ export const useDailyMeals = (): UseDailyMealsReturn => {
     clearCache,
     nutritionData,
     mealSummary,
-    addMeal: addMealToDaily
+    addMeal: addMealToDaily,
+    editMeal: editMeal
   }
 }

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -17,7 +17,7 @@ import {
   Clock as ClockIcon
 } from "lucide-react"
 import IngredientForm, { IngredientData } from "@/components/ingredient-form"
-import { deleteIngredient, editIngredient } from "@/lib/ingredients"
+import { deleteIngredient, editIngredient, getIngredientImage, getCachedImage } from "@/lib/ingredients"
 
 interface IngredientCardProps {
   id: number
@@ -124,11 +124,49 @@ let IngredientCard = ({
   let [isHovered, setIsHovered] = useState(false)
   let [isFormOpen, setIsFormOpen] = useState(false)
   let [editData, setEditData] = useState<IngredientData | undefined>()
+  let [ingredientImage, setIngredientImage] = useState<string>("/placeholder.svg")
 
   const daysUntilExpiry = getDaysUntilExpiry(expire_date)
   const isExpired = daysUntilExpiry !== null && daysUntilExpiry < 0
   const statusInfo = getStatusInfo(expire_date)
   const StatusIcon = statusInfo.icon
+
+  // Fetch ingredient image when component mounts
+  useEffect(() => {
+    const fetchIngredientImage = async () => {
+      try {
+        // Check cache first
+        const cachedImage = getCachedImage(id)
+        if (cachedImage) {
+          console.log(`💾 Using cached image for ingredient ${id}:`, cachedImage)
+          setIngredientImage(cachedImage)
+          return
+        }
+
+        console.log(`🔍 Fetching image for ingredient ID: ${id}`)
+        const imageUrl = await getIngredientImage(id)
+        console.log(`📸 Received image URL: ${imageUrl}`)
+        setIngredientImage(imageUrl)
+      } catch (error) {
+        console.error('Error fetching ingredient image:', error)
+        setIngredientImage("/placeholder.svg")
+      }
+    }
+
+    fetchIngredientImage()
+  }, [id])
+
+  // Determine if image should load
+  const shouldLoadImage = ingredientImage && ingredientImage !== "/placeholder.svg" && ingredientImage.trim() !== ""
+
+  // Debug logging for image state
+  useEffect(() => {
+    console.log(`🖼️ Ingredient ${id} (${name}):`, {
+      ingredientImage,
+      shouldLoadImage,
+      imageLength: ingredientImage?.length
+    })
+  }, [ingredientImage, shouldLoadImage, id, name])
 
   let handleEdit = () => {
     setEditData({
@@ -180,7 +218,25 @@ let IngredientCard = ({
     >
       <div className={`${isHovered ? "bg-white rounded-[7px]" : ""} h-full`}>
         {/* Header Section */}
-        <div className="relative p-6 bg-gradient-to-br from-slate-50 to-gray-100 border-b border-gray-200">
+        <div className="relative p-6 bg-gradient-to-br from-slate-50 to-gray-100 border-b border-gray-200 overflow-hidden">
+          {/* Background Image */}
+          {shouldLoadImage && (
+            <div className="absolute inset-0 z-0">
+              <img
+                src={ingredientImage}
+                alt={name}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement
+                  target.onerror = null // stop infinite loop
+                  target.src = "/placeholder.svg"
+                }}
+              />
+              {/* Overlay for better text readability */}
+              <div className="absolute inset-0 bg-white/70 backdrop-blur-[1px]"></div>
+            </div>
+          )}
+
           {/* Status Badge */}
           <div className="absolute top-4 right-4 z-10">
             <Badge className={`${statusInfo.badgeClass} border-0 shadow-sm text-xs font-medium`}>
@@ -190,10 +246,33 @@ let IngredientCard = ({
           </div>
 
           {/* Main Content */}
-          <div className="pr-20">
+          <div className="relative z-10 pr-20">
             {/* Icon Container */}
-            <div className="w-16 h-16 bg-white rounded-2xl shadow-sm border border-gray-200 flex items-center justify-center mb-4">
-              <ShoppingBag size={28} className="text-gray-600" />
+            <div className="w-16 h-16 bg-white rounded-2xl shadow-sm border border-gray-200 flex items-center justify-center mb-4 overflow-hidden">
+              {shouldLoadImage ? (
+                <>
+                  {console.log(`🎯 Rendering image for ${name}:`, ingredientImage)}
+                  <img 
+                    src={ingredientImage} 
+                    alt={name} 
+                    className="w-full h-full object-cover rounded-2xl"
+                    onError={(e) => {
+                      console.log(`❌ Image failed to load for ${name}:`, ingredientImage)
+                      const target = e.target as HTMLImageElement
+                      target.onerror = null // stop infinite loop
+                      target.src = "/placeholder.svg"
+                    }}
+                    onLoad={() => {
+                      console.log(`✅ Image loaded successfully for ${name}:`, ingredientImage)
+                    }}
+                  />
+                </>
+              ) : (
+                <>
+                  {console.log(`🔄 Using fallback icon for ${name}. shouldLoadImage:`, shouldLoadImage, 'ingredientImage:', ingredientImage)}
+                  <ShoppingBag size={28} className="text-gray-600" />
+                </>
+              )}
             </div>
 
             {/* Food Name */}

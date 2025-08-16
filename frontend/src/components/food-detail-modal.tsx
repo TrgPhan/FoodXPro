@@ -118,7 +118,7 @@ export default function FoodDetailModal({ isOpen, onClose, recipe, nutritions, i
               <div className="bg-orange-50 p-4 rounded-xl border border-orange-200 text-center">
                 <Flame size={24} className="text-orange-600 mx-auto mb-2" />
                 <div className="text-2xl font-bold text-orange-800">{recipe.calories}</div>
-                <div className="text-sm text-orange-600">Calories</div>
+                <div className="text-sm text-orange-600">kcal</div>
               </div>
               <div className="bg-red-50 p-4 rounded-xl border border-red-200 text-center">
                 <Beef size={24} className="text-red-600 mx-auto mb-2" />
@@ -148,15 +148,15 @@ export default function FoodDetailModal({ isOpen, onClose, recipe, nutritions, i
               <h3 className="text-lg font-semibold text-blue-800 mb-3">Thời gian</h3>
               <div className="grid grid-cols-3 gap-4">
                 <div className="text-center">
-                  <div className="text-xl font-bold text-blue-800">{recipe.prep_time}</div>
+                  <div className="text-xl font-bold text-blue-800">{recipe.prep_time || 0}</div>
                   <div className="text-sm text-blue-600">Chuẩn bị (phút)</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-xl font-bold text-blue-800">{recipe.cook_time}</div>
+                  <div className="text-xl font-bold text-blue-800">{recipe.cook_time || 0}</div>
                   <div className="text-sm text-blue-600">Nấu (phút)</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-xl font-bold text-blue-800">{recipe.total_time}</div>
+                  <div className="text-xl font-bold text-blue-800">{recipe.total_time || 0}</div>
                   <div className="text-sm text-blue-600">Tổng (phút)</div>
                 </div>
               </div>

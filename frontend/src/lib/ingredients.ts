@@ -118,3 +118,86 @@ export let searchIngredients = async (name: string, limit: number = 10): Promise
     throw error
   }
 }
+
+// Image cache to avoid repeated API calls
+const imageCache = new Map<number, string>()
+
+// Get ingredient image by ingredient_id with caching
+export let getIngredientImage = async (ingredient_id: number): Promise<string> => {
+  // Check cache first
+  if (imageCache.has(ingredient_id)) {
+    console.log(`💾 Using cached image for ingredient ${ingredient_id}`)
+    return imageCache.get(ingredient_id)!
+  }
+
+  try {
+    let queryParams = new URLSearchParams()
+    queryParams.append('ingredient_id', ingredient_id.toString())
+
+    console.log(`🌐 Calling API: ${API_BASE_URL}/ingredients/get-ingredient-image?${queryParams.toString()}`)
+    
+    let data = await authenticatedRequest<string>(`${API_BASE_URL}/ingredients/get-ingredient-image?${queryParams.toString()}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    })
+    
+    console.log(`📡 API Response:`, data)
+    console.log(`📡 Response type:`, typeof data)
+    
+    // Validate the returned URL
+    let finalUrl = "/placeholder.svg"
+    if (data && typeof data === 'string' && data.trim() !== '') {
+      try {
+        // If it's already a full URL, use it as is
+        if (data.startsWith('http://') || data.startsWith('https://')) {
+          console.log(`✅ Absolute URL received:`, data)
+          finalUrl = data
+        }
+        
+        // If it's a relative URL, construct full URL
+        else if (data.startsWith('/')) {
+          const fullUrl = `${API_BASE_URL}${data}`
+          console.log(`✅ Constructed full URL from relative:`, fullUrl)
+          finalUrl = fullUrl
+        }
+        
+        // If it's just a path without leading slash, add it
+        else {
+          const fullUrl = `${API_BASE_URL}/${data}`
+          console.log(`✅ Constructed full URL from path:`, fullUrl)
+          finalUrl = fullUrl
+        }
+        
+      } catch (urlError) {
+        console.log(`⚠️ Invalid URL format:`, data)
+        finalUrl = "/placeholder.svg"
+      }
+    } else {
+      console.log(`⚠️ No valid image URL received, using placeholder`)
+    }
+
+    // Cache the result
+    imageCache.set(ingredient_id, finalUrl)
+    console.log(`💾 Cached image for ingredient ${ingredient_id}:`, finalUrl)
+    
+    return finalUrl
+  } catch (error) {
+    console.error('Error fetching ingredient image:', error)
+    const fallbackUrl = "/placeholder.svg"
+    imageCache.set(ingredient_id, fallbackUrl)
+    return fallbackUrl
+  }
+}
+
+// Clear image cache (useful for testing or memory management)
+export let clearImageCache = (): void => {
+  imageCache.clear()
+  console.log('🗑️ Image cache cleared')
+}
+
+// Get cached image without API call
+export let getCachedImage = (ingredient_id: number): string | null => {
+  return imageCache.get(ingredient_id) || null
+}

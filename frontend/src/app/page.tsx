@@ -16,7 +16,6 @@ import CalendarScreen from "@/components/calendar-screen"
 import ProfileScreen from "@/components/profile-screen"
 
 const navigationItems = [
-  { id: "home", label: "TRANG CHỦ", icon: Package, color: "text-gray-600", requireAuth: false },
   { id: "storage", label: "KHO NGUYÊN LIỆU", icon: Package, color: "text-green-600", requireAuth: true },
   { id: "food", label: "THỰC ĐƠN", icon: UtensilsCrossed, color: "text-orange-600", requireAuth: true },
   { id: "chat", label: "CHATBOT GỢI Ý", icon: MessageCircle, color: "text-blue-600", requireAuth: true },
@@ -25,7 +24,7 @@ const navigationItems = [
 ]
 
 export default function FoodApp() {
-  const [activeTab, setActiveTab] = useState("home")
+  const [activeTab, setActiveTab] = useState("storage")
   const [authenticated, setAuthenticated] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
@@ -61,8 +60,6 @@ export default function FoodApp() {
 
   const renderContent = () => {
     switch (activeTab) {
-      case "home":
-        return <HomeScreen />
       case "storage":
         return authenticated ? <StoreScreen /> : <HomeScreen />
       case "food":
@@ -91,6 +88,12 @@ export default function FoodApp() {
     )
   }
 
+  // If not authenticated, show full-width landing page
+  if (!authenticated) {
+    return <HomeScreen />
+  }
+
+  // If authenticated, show the app with sidebar
   return (
     <div className="h-screen bg-gray-50 flex">
       {/* Left Sidebar */}
@@ -108,27 +111,25 @@ export default function FoodApp() {
 
         <nav className="flex-1 p-4">
           <ul className="space-y-2">
-            {navigationItems
-              .filter(item => !authenticated || item.id !== "home") // Hide HOME tab when authenticated
-              .map((item) => {
-                const Icon = item.icon
-                const isActive = activeTab === item.id
+            {navigationItems.map((item) => {
+              const Icon = item.icon
+              const isActive = activeTab === item.id
 
-                return (
-                  <li key={item.id}>
-                    <button
-                      onClick={() => handleTabClick(item.id, item.requireAuth)}
-                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-all duration-200 ${isActive
-                        ? "bg-gradient-to-r from-green-50 to-orange-50 text-gray-900 font-medium border border-green-200"
-                        : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                        }`}
-                    >
-                      <Icon size={20} className={isActive ? item.color : ""} />
-                      <span className="flex-1">{item.label}</span>
-                    </button>
-                  </li>
-                )
-              })}
+              return (
+                <li key={item.id}>
+                  <button
+                    onClick={() => handleTabClick(item.id, item.requireAuth)}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-all duration-200 ${isActive
+                      ? "bg-gradient-to-r from-green-50 to-orange-50 text-gray-900 font-medium border border-green-200"
+                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                      }`}
+                  >
+                    <Icon size={20} className={isActive ? item.color : ""} />
+                    <span className="flex-1">{item.label}</span>
+                  </button>
+                </li>
+              )
+            })}
           </ul>
         </nav>
 
