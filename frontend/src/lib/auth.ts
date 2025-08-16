@@ -28,6 +28,15 @@ export interface RegisterResponse {
   message: string
 }
 
+export interface ChangePasswordRequest {
+  password: string
+}
+
+export interface ChangePasswordResponse {
+  success: boolean
+  message: string
+}
+
 export interface AuthError {
   detail: string
 }
@@ -141,6 +150,25 @@ export let login = async (credentials: LoginRequest): Promise<LoginResponse> => 
 }
 
 /**
+ * Change password
+ */
+export let changePassword = async (passwordData: ChangePasswordRequest): Promise<ChangePasswordResponse> => {
+  try {
+    const data = await authenticatedRequest<ChangePasswordResponse>(`${API_BASE_URL}/auth/change_password`, {
+      method: 'PUT',
+      body: JSON.stringify(passwordData),
+    })
+    
+    return data
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(error.message)
+    }
+    throw new Error('Đổi mật khẩu thất bại')
+  }
+}
+
+/**
  * Logout user
  */
 export let logout = (): void => {
@@ -208,6 +236,9 @@ export let authAPI = {
   },
   register: async (data: RegisterRequest): Promise<RegisterResponse> => {
     return register(data)
+  },
+  changePassword: async (data: ChangePasswordRequest): Promise<ChangePasswordResponse> => {
+    return changePassword(data)
   }
 }
 

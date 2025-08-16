@@ -9,23 +9,19 @@ import {
   getNutritionForProfile,
   getMealSummary,
   clearDailyMealsCache,
-  getMealWithCalories,
   addMeal,
-  editMeal,
   AddMealParams,
   AddMealResponse,
+  editMeal,
   EditMealParams,
-  EditMealResponse
+  deleteMeal,
+  DeleteMealParams,
+  ApiResponse
 } from '../lib/daily-meals'
 
 export interface UseDailyMealsReturn {
   dailyMeals: DailyMeals | null
-  dailyMealsWithCalories: (DailyMeals & { 
-    breakfast: (MealItem & { calories: number })[]
-    lunch: (MealItem & { calories: number })[]
-    dinner: (MealItem & { calories: number })[]
-    snack: (MealItem & { calories: number })[]
-  }) | null
+  dailyMealsWithCalories: DailyMeals | null
   loading: boolean
   error: string | null
   fetchDailyMeals: (day: string) => Promise<void>
@@ -34,17 +30,13 @@ export interface UseDailyMealsReturn {
   nutritionData: ReturnType<typeof getNutritionForProfile> | null
   mealSummary: ReturnType<typeof getMealSummary> | null
   addMeal: (params: AddMealParams) => Promise<AddMealResponse>
-  editMeal: (params: EditMealParams) => Promise<EditMealResponse>
+  editMeal: (params: EditMealParams) => Promise<ApiResponse>
+  deleteMeal: (params: DeleteMealParams) => Promise<ApiResponse>
 }
 
 export const useDailyMeals = (): UseDailyMealsReturn => {
   const [dailyMeals, setDailyMeals] = useState<DailyMeals | null>(null)
-  const [dailyMealsWithCalories, setDailyMealsWithCalories] = useState<(DailyMeals & { 
-    breakfast: (MealItem & { calories: number })[]
-    lunch: (MealItem & { calories: number })[]
-    dinner: (MealItem & { calories: number })[]
-    snack: (MealItem & { calories: number })[]
-  }) | null>(null)
+  const [dailyMealsWithCalories, setDailyMealsWithCalories] = useState<DailyMeals | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -54,16 +46,7 @@ export const useDailyMeals = (): UseDailyMealsReturn => {
       setError(null)
       const data = await getDailyMeals({ day })
       setDailyMeals(data)
-      
-      // Get meals with calories
-      const mealsWithCalories = {
-        ...data,
-        breakfast: await Promise.all(data.breakfast.map(getMealWithCalories)),
-        lunch: await Promise.all(data.lunch.map(getMealWithCalories)),
-        dinner: await Promise.all(data.dinner.map(getMealWithCalories)),
-        snack: await Promise.all(data.snack.map(getMealWithCalories))
-      }
-      setDailyMealsWithCalories(mealsWithCalories)
+      setDailyMealsWithCalories(data) // Now calories come directly from API
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch daily meals')
       console.error('Error in useDailyMeals:', err)
@@ -78,16 +61,7 @@ export const useDailyMeals = (): UseDailyMealsReturn => {
       setError(null)
       const data = await getTodayMeals()
       setDailyMeals(data)
-      
-      // Get meals with calories
-      const mealsWithCalories = {
-        ...data,
-        breakfast: await Promise.all(data.breakfast.map(getMealWithCalories)),
-        lunch: await Promise.all(data.lunch.map(getMealWithCalories)),
-        dinner: await Promise.all(data.dinner.map(getMealWithCalories)),
-        snack: await Promise.all(data.snack.map(getMealWithCalories))
-      }
-      setDailyMealsWithCalories(mealsWithCalories)
+      setDailyMealsWithCalories(data) // Now calories come directly from API
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch today\'s meals')
       console.error('Error in useDailyMeals:', err)
@@ -125,6 +99,38 @@ export const useDailyMeals = (): UseDailyMealsReturn => {
     }
   }, [fetchTodayMeals])
 
+  const editMealInDaily = useCallback(async (params: EditMealParams): Promise<ApiResponse> => {
+    try {
+      setLoading(true)
+      setError(null)
+      const response = await editMeal(params)
+      await fetchTodayMeals()
+      return response
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to edit meal'
+      setError(errorMessage)
+      throw err
+    } finally {
+      setLoading(false)
+    }
+  }, [fetchTodayMeals])
+
+  const deleteMealFromDaily = useCallback(async (params: DeleteMealParams): Promise<ApiResponse> => {
+    try {
+      setLoading(true)
+      setError(null)
+      const response = await deleteMeal(params)
+      await fetchTodayMeals()
+      return response
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to delete meal'
+      setError(errorMessage)
+      throw err
+    } finally {
+      setLoading(false)
+    }
+  }, [fetchTodayMeals])
+
   // Computed values
   const nutritionData = dailyMeals ? getNutritionForProfile(dailyMeals.nutrition) : null
   const mealSummary = dailyMeals ? getMealSummary(dailyMeals) : null
@@ -140,6 +146,7 @@ export const useDailyMeals = (): UseDailyMealsReturn => {
     nutritionData,
     mealSummary,
     addMeal: addMealToDaily,
-    editMeal: editMeal
+    editMeal: editMealInDaily,
+    deleteMeal: deleteMealFromDaily
   }
 }

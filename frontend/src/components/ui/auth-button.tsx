@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { LogIn, User, LogOut } from "lucide-react"
+import { LogIn, User, LogOut, Shield } from "lucide-react"
 import { isAuthenticated, logout } from "@/lib/auth"
 import { useRouter } from "next/navigation"
 
@@ -40,6 +40,11 @@ export default function AuthButton() {
     window.location.reload()
   }
 
+  const handleChangePassword = () => {
+    setShowDropdown(false)
+    router.push('/change-password')
+  }
+
   const handleProfileClick = () => {
     setShowDropdown(!showDropdown)
   }
@@ -72,8 +77,16 @@ export default function AuthButton() {
       {showDropdown && (
         <div className="absolute bottom-full right-0 mb-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
           <button
+            onClick={handleChangePassword}
+            className="w-full flex items-center gap-3 px-4 py-2 text-left text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors"
+          >
+            <Shield size={16}/>
+            <span className="text-sm">Đổi mật khẩu</span>
+          </button>
+          <div className="h-px bg-gray-200 my-1"></div>
+          <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-2 text-left text-gray-700 hover:bg-gray-50 transition-colors"
+            className="w-full flex items-center gap-3 px-4 py-2 text-left text-gray-700 hover:bg-red-50 hover:text-red-700 transition-colors"
           >
             <LogOut size={16} />
             <span className="text-sm">Đăng xuất</span>

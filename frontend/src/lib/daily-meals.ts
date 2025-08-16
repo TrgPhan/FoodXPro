@@ -13,6 +13,7 @@ export interface MealItem {
   name: string
   image: string
   servings_eaten?: number
+  calories?: number
 }
 
 export interface NutritionItem {
@@ -56,10 +57,15 @@ export interface EditMealParams {
   new_servings_eaten: number
 }
 
-export interface EditMealResponse {
+export interface DeleteMealParams {
+  recipe_id: number
+  eat_date: string
+  eat_at: EatAtType
+}
+
+export interface ApiResponse {
   success: boolean
   message: string
-  meal?: MealItem
 }
 
 // Cache key generator for daily meals
@@ -126,31 +132,6 @@ export let addMeal = async (params: AddMealParams): Promise<AddMealResponse> => 
     return data
   } catch (error) {
     console.error('Error adding meal:', error)
-    throw error
-  }
-}
-
-// Edit meal servings in daily meals
-export let editMeal = async (params: EditMealParams): Promise<EditMealResponse> => {
-  try {
-    console.log('✏️ Editing meal servings:', params)
-    
-    const query = new URLSearchParams()
-    query.append('recipe_id', params.recipe_id.toString())
-    query.append('eat_date', params.eat_date)
-    query.append('eat_at', params.eat_at)
-    query.append('new_servings_eaten', params.new_servings_eaten.toString())
-    const url = `${API_BASE_URL}/daily-meals/edit?${query.toString()}`
-    
-    const data = await authenticatedRequest<EditMealResponse>(url, { method: 'PUT' })
-    
-    // Clear cache for the specific date after editing meal
-    clearDailyMealsCache(params.eat_date)
-    
-    console.log('✅ Meal edited successfully:', data)
-    return data
-  } catch (error) {
-    console.error('Error editing meal:', error)
     throw error
   }
 }
@@ -302,15 +283,6 @@ export let getCaloriesFromRecipes = async (mealName: string): Promise<number> =>
   }
 }
 
-// Helper function to get meal with calories
-export let getMealWithCalories = async (meal: MealItem): Promise<MealItem & { calories: number }> => {
-  const calories = await getCaloriesFromRecipes(meal.name)
-  return {
-    ...meal,
-    calories
-  }
-}
-
 // Clear daily meals cache for a specific day
 export let clearDailyMealsCache = (day?: string): void => {
   if (day) {
@@ -326,5 +298,45 @@ export let clearDailyMealsCache = (day?: string): void => {
       }
     })
     console.log('🗑️ All daily meals cache cleared')
+  }
+}
+
+// Edit meal (update servings_eaten)
+export let editMeal = async (params: EditMealParams): Promise<ApiResponse> => {
+  try {
+    console.log('✏️ Editing meal:', params)
+    const query = new URLSearchParams()
+    query.append('recipe_id', params.recipe_id.toString())
+    query.append('eat_date', params.eat_date)
+    query.append('eat_at', params.eat_at)
+    query.append('new_servings_eaten', params.new_servings_eaten.toString())
+    const url = `${API_BASE_URL}/daily-meals/edit?${query.toString()}`
+    const data = await authenticatedRequest<ApiResponse>(url, { method: 'PUT' })
+    console.log('✅ Meal edited:', data)
+    // Clear cache for that date
+    clearDailyMealsCache(params.eat_date)
+    return data
+  } catch (error) {
+    console.error('Error editing meal:', error)
+    throw error
+  }
+}
+
+// Delete meal
+export let deleteMeal = async (params: DeleteMealParams): Promise<ApiResponse> => {
+  try {
+    console.log('🗑️ Deleting meal:', params)
+    const query = new URLSearchParams()
+    query.append('recipe_id', params.recipe_id.toString())
+    query.append('eat_date', params.eat_date)
+    query.append('eat_at', params.eat_at)
+    const url = `${API_BASE_URL}/daily-meals/delete?${query.toString()}`
+    const data = await authenticatedRequest<ApiResponse>(url, { method: 'DELETE' })
+    console.log('✅ Meal deleted:', data)
+    clearDailyMealsCache(params.eat_date)
+    return data
+  } catch (error) {
+    console.error('Error deleting meal:', error)
+    throw error
   }
 }

@@ -291,7 +291,7 @@ export default function FoodCard({
                     className="text-center transition-all duration-200 cursor-pointer"
                     onMouseEnter={() => setIsCalorieHovered(true)}
                     onMouseLeave={() => setIsCalorieHovered(false)}
-                    onClick={handleAddClick}
+                    onClick={isAvailable ? handleAddClick : undefined}
                   >
                     {!isCalorieHovered ? (
                       <div
@@ -305,7 +305,7 @@ export default function FoodCard({
                         </div>
                         <div className="text-xs text-gray-600">sẽ tăng</div>
                       </div>
-                    ) : (
+                    ) : isAvailable ? (
                       <div className="relative group/add">
                         <div
                           className={`transition-all duration-300 rounded-xl ${
@@ -329,6 +329,14 @@ export default function FoodCard({
                           <div className="bg-white/90 backdrop-blur-sm text-gray-800 text-xs px-2 py-1 rounded-md whitespace-nowrap shadow-lg border border-gray-200">Thêm vào lịch</div>
                           <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1 w-0 h-0 border-l-2 border-r-2 border-b-2 border-transparent border-b-white"></div>
                         </div>
+                      </div>
+                    ) : (
+                      <div className="bg-white/90 backdrop-blur-sm rounded-xl p-3 shadow-lg">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Flame size={18} className="text-orange-500" />
+                          <span className="text-lg font-bold text-gray-900">+{recipe.calories} kcal</span>
+                        </div>
+                        <div className="text-xs text-gray-600">sẽ tăng</div>
                       </div>
                     )}
                   </div>

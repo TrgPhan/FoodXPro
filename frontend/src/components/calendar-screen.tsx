@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
-import { ChevronLeft, ChevronRight, Calendar, Plus, Loader2 } from "lucide-react"
+import { ChevronLeft, ChevronRight, Calendar, Plus, Loader2, Check, X } from "lucide-react"
 import FoodCard from "@/components/food-card"
 import Header from "@/components/ui/header"
 import { MEAL_PERIODS, MEAL_PERIOD_COLORS } from "@/lib/constants"
@@ -18,16 +18,8 @@ export default function CalendarScreen() {
   const [selectedDate, setSelectedDate] = useState<string>("")
   const [currentWeek, setCurrentWeek] = useState<Date[]>([])
   const [selectedCalendarDate, setSelectedCalendarDate] = useState<Date | undefined>(undefined)
-  
-  // Edit meal states
-  const [editingMeal, setEditingMeal] = useState<{
-    id: number
-    name: string
-    mealPeriod: string
-    currentServings: number
-  } | null>(null)
-  const [newServings, setNewServings] = useState<string>("")
-  const [isEditing, setIsEditing] = useState(false)
+  const [editingMealId, setEditingMealId] = useState<number | null>(null)
+  const [editServings, setEditServings] = useState<string>("1")
 
   // Helper function to convert Date to YYYY-MM-DD string using local timezone
   const formatDateToString = (date: Date): string => {
@@ -46,7 +38,8 @@ export default function CalendarScreen() {
     fetchDailyMeals,
     nutritionData,
     mealSummary,
-    editMeal
+    editMeal,
+    deleteMeal
   } = useDailyMeals()
 
   // Generate current week dates
@@ -239,52 +232,38 @@ export default function CalendarScreen() {
     console.log(`${action} food:`, id)
   }
 
-  const handleEditMeal = (meal: any, mealPeriod: string) => {
-    setEditingMeal({
-      id: meal.id,
-      name: meal.name,
-      mealPeriod: mealPeriod,
-      currentServings: meal.servings_eaten || 1
-    })
-    setNewServings((meal.servings_eaten || 1).toString())
-    setIsEditing(true)
+  const handleAddMeal = (mealPeriod: string) => {
+    console.log(`Add meal to ${mealPeriod}`)
   }
 
-  const handleConfirmEdit = async () => {
-    if (!editingMeal || !newServings) return
-    
+  const handleFoodEdit = (meal: any, eatAt: string) => {
+    setEditingMealId(meal.id)
+    setEditServings((meal.servings_eaten || 1).toString())
+  }
+
+  const confirmFoodEdit = async (meal: any, eatAt: string) => {
     try {
-      setIsEditing(true)
-      const servings = Number.parseFloat(newServings) || 1
-      
+      const servings = Number.parseFloat(editServings) || 1
       await editMeal({
-        recipe_id: editingMeal.id,
+        recipe_id: meal.id,
         eat_date: selectedDate,
-        eat_at: editingMeal.mealPeriod as "breakfast" | "lunch" | "dinner" | "snack",
+        eat_at: eatAt as any,
         new_servings_eaten: servings
       })
-      
-      // Refresh meals for the current date
-      await fetchDailyMeals(selectedDate)
-      
-      console.log(`✅ Updated ${editingMeal.name} servings to ${servings}`)
     } catch (error) {
-      console.error('Error editing meal:', error)
+      console.error('Edit meal error', error)
     } finally {
-      setEditingMeal(null)
-      setNewServings("")
-      setIsEditing(false)
+      setEditingMealId(null)
     }
   }
 
-  const handleCancelEdit = () => {
-    setEditingMeal(null)
-    setNewServings("")
-    setIsEditing(false)
-  }
+  const cancelFoodEdit = () => { setEditingMealId(null) }
 
-  const handleAddMeal = (mealPeriod: string) => {
-    console.log(`Add meal to ${mealPeriod}`)
+  const handleFoodDelete = async (meal: any, eatAt: string) => {
+    if(!confirm('Bạn chắc chắn muốn xoá?')) return
+    try {
+      await deleteMeal({ recipe_id: meal.id, eat_date: selectedDate, eat_at: eatAt as any })
+    } catch(err){ console.error(err) }
   }
 
   const MacroSummary = ({ macros }: { macros: any }) => (
@@ -405,71 +384,34 @@ export default function CalendarScreen() {
                                     </div>
                                     <div className="flex-1">
                                       <h4 className="font-medium text-gray-900 text-sm">{meal.name}</h4>
-                                      <div className="flex items-center gap-2 mt-1">
-                                        <div className="flex items-center gap-1">
-                                          <div className="w-2 h-2 bg-orange-400 rounded-full"></div>
-                                          <span className="text-xs text-gray-600 font-medium">{meal.calories} kcal</span>
-                                        </div>
-                                        {meal.servings_eaten !== undefined && (
-                                          <div className="flex items-center gap-1">
-                                            <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                                            <span className="text-xs text-gray-600 font-medium">{meal.servings_eaten}x</span>
-                                          </div>
-                                        )}
-                                      </div>
+                                                                             <div className="flex items-center gap-2 mt-1">
+                                         <div className="flex items-center gap-1">
+                                           <div className="w-2 h-2 bg-orange-400 rounded-full"></div>
+                                           <span className="text-xs text-gray-600 font-medium">{meal.calories || 0} kcal</span>
+                                         </div>
+                                         {meal.servings_eaten !== undefined && (
+                                           <div className="flex items-center gap-1">
+                                             <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                                             <span className="text-xs text-gray-600 font-medium">{meal.servings_eaten}x</span>
+                                           </div>
+                                         )}
+                                       </div>
                                     </div>
                                     <div className="flex gap-1">
-                                      {editingMeal?.id === meal.id ? (
-                                        // Edit mode - show servings input
+                                      {editingMealId === meal.id ? (
                                         <div className="flex items-center gap-2">
-                                          <input
-                                            type="number"
-                                            value={newServings}
-                                            onChange={(e) => setNewServings(e.target.value)}
-                                            min="0.1"
-                                            step="0.1"
-                                            className="w-16 h-8 text-xs border border-gray-300 rounded px-2 focus:outline-none focus:border-blue-500"
-                                            onClick={(e) => e.stopPropagation()}
-                                            autoFocus
-                                          />
-                                          <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={(e) => {
-                                              e.stopPropagation()
-                                              handleConfirmEdit()
-                                            }}
-                                            disabled={isEditing}
-                                            className="h-8 w-8 p-0 text-green-600 hover:text-green-700"
-                                          >
-                                            {isEditing ? (
-                                              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-green-600" />
-                                            ) : (
-                                              <span className="text-xs">✓</span>
-                                            )}
-                                          </Button>
-                                          <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={(e) => {
-                                              e.stopPropagation()
-                                              handleCancelEdit()
-                                            }}
-                                            disabled={isEditing}
-                                            className="h-8 w-8 p-0 text-gray-600 hover:text-gray-700"
-                                          >
-                                            <span className="text-xs">✕</span>
-                                          </Button>
+                                          <input type="number" min="0.1" step="0.1" value={editServings} onChange={(e)=>setEditServings(e.target.value)} className="w-16 h-6 text-xs text-center border rounded" />
+                                          <button onClick={()=>confirmFoodEdit(meal, period.id)} className="w-6 h-6 bg-green-500 rounded flex items-center justify-center"><Check size={12} className="text-white"/></button>
+                                          <button onClick={cancelFoodEdit} className="w-6 h-6 bg-gray-200 rounded flex items-center justify-center"><X size={12} className="text-gray-600"/></button>
                                         </div>
                                       ) : (
-                                        // Normal mode - show edit/delete buttons
                                         <>
                                           <Button
                                             variant="ghost"
                                             size="sm"
                                             onClick={(e) => {
-                                              e.stopPropagation()
-                                              handleEditMeal(meal, period.id)
+                                              e.stopPropagation();
+                                              handleFoodEdit(meal, period.id);
                                             }}
                                             className="h-8 w-8 p-0"
                                           >
@@ -479,8 +421,8 @@ export default function CalendarScreen() {
                                             variant="ghost"
                                             size="sm"
                                             onClick={(e) => {
-                                              e.stopPropagation()
-                                              handleFoodAction("delete", meal.id.toString())
+                                              e.stopPropagation();
+                                              handleFoodDelete(meal, period.id);
                                             }}
                                             className="h-8 w-8 p-0"
                                           >
