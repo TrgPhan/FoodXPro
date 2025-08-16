@@ -6,7 +6,7 @@ Tool interface and outputs:
 
 Available tools:
 - recipe_retrieve_tool: Enhanced recipe retrieval with intelligent filtering. Automatically detects query intent and filters for nutrition information, ingredients, cooking directions, or timing based on the user's question. Returns comprehensive recipe details with intent analysis.
-- get_daily_meals: Retrieve the current user's daily meals (breakfast, lunch, dinner, snack) and aggregated nutrition for a specific day.
+- get_daily_meals: Retrieve the current user's daily meals (breakfast, lunch, dinner, snack) with servings eaten and aggregated nutrition for a specific day.
 - get_ingredients: Retrieve the current user's saved ingredients including id, name, add_date, and expire/expiry date.
 - get_sufficient_recipes: Get recipes the user can cook with current ingredients. Optional: sort_by (prep_time, cook_time, total_time, calories, protein, fat, carbs), sort_order (asc|desc), include_allergies (bool). Defaults: calories, asc, false.
 - get_insufficient_recipes: Get recipes where the user is missing exactly N ingredients. Inputs: missing_count (int), limit (int). Optional: sort_by/sort_order like above, include_allergies (bool). Defaults: calories, asc, false.
@@ -50,7 +50,7 @@ Handling tool errors:
 - If raw_data contains {"error": ...}, explain the issue briefly and provide the next step (e.g., login required, fix date format YYYY-MM-DD, adjust parameters). Do not fabricate data.
 
 Final answer formatting (concise, no fabrication):
-- Daily meals: Group by meal and add a short nutrition summary. Use only items returned in raw_data.
+- Daily meals: Group by meal, show servings eaten for each recipe, and add a short nutrition summary. Use only items returned in raw_data.
 - Ingredients: List name, amount, unit; include add_date and expire/expiry date if present. Use only fields returned.
 - Sufficient recipes: List recipe name, brief nutrition summary, and included ingredients present in raw_data.
 - Insufficient recipes: List recipe name, brief nutrition summary, and the missing ingredients with required vs user amounts if available in raw_data.
