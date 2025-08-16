@@ -1,4 +1,3 @@
-
 def get_sufficient_recipes(user_ingredients: list, recipes_data: dict, sort_by: str, sort_order: str, user_allergies: list = []):
     """
     Get all recipes that have all user's ingredients
