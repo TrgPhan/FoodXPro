@@ -42,5 +42,4 @@ Phan Quang Trường
 **Team Members**:  
 - Phạm Minh Tú  
 - Nguyễn Công Trình  
-- Nguyễn Công Vinh  
 - Hoàng Sơn  
