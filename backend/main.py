@@ -36,6 +36,8 @@ from models import allergies, healthConditions, recipes, ingredientAllergies, he
 from db import Base, engine
 from app.services.vectorstore.embedder import init_chroma_db
 
+from routers.recipes.api import router as recipes_router
+
 logger = get_logger("recipe-assistant")
 
 app = FastAPI()
@@ -72,3 +74,5 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"]
 )
+
+app.include_router(recipes_router, prefix="/recipes", tags=["Recipes"])
