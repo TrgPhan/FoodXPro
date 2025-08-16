@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Clock, Users, Flame, Beef, Wheat, Droplets, ChefHat, X } from "lucide-react"
+import { useRecipeImage } from "@/hooks/useRecipeImage"
 import { Button } from "@/components/ui/button"
 
 interface Recipe {
@@ -52,6 +53,11 @@ interface FoodDetailModalProps {
 }
 
 export default function FoodDetailModal({ isOpen, onClose, recipe, nutritions, ingredients, missingIngredients = [] }: FoodDetailModalProps) {
+
+  const { imageUrl: fetchedImage } = useRecipeImage(recipe.id, recipe.name)
+
+  const displayImage = recipe.image_url && !recipe.image_url.includes("allrecipes.com/recipe") ? recipe.image_url : fetchedImage
+
   const getRecipeEmoji = (name: string) => {
     const lowerName = name.toLowerCase()
     if (lowerName.includes("beef") || lowerName.includes("steak")) return "🥩"
@@ -74,7 +80,7 @@ export default function FoodDetailModal({ isOpen, onClose, recipe, nutritions, i
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-3xl flex items-center justify-center overflow-hidden">
                 <img
-                  src={recipe.image_url}
+                  src={displayImage}
                   alt={recipe.name}
                   className="w-full h-full object-cover rounded-3xl"
                   onError={(e) => {

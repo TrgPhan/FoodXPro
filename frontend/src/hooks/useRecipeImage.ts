@@ -9,7 +9,8 @@ import { getRecipeImage, getCachedRecipeImage } from '@/lib/recipe-images'
  * @param recipeName string – only used for debug
  */
 export function useRecipeImage(recipeId: number | undefined, recipeName?: string) {
-  const [imageUrl, setImageUrl] = useState<string>('/placeholder.svg')
+  const initial = recipeId ? getCachedRecipeImage(recipeId) || '/placeholder.svg' : '/placeholder.svg'
+  const [imageUrl, setImageUrl] = useState<string>(initial)
 
   useEffect(() => {
     if (!recipeId) return

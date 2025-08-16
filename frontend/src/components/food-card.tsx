@@ -202,6 +202,9 @@ export default function FoodCard({
       ? recipe.image_url
       : fetchedImage
 
+  // Merge into recipe object to propagate to detail modal
+  const recipeWithImage = { ...recipe, image_url: displayImage }
+
   const shouldLoadImage = displayImage && displayImage !== "/placeholder.svg" && displayImage.trim() !== ""
 
   return (
@@ -598,7 +601,7 @@ export default function FoodCard({
       <FoodDetailModal
         isOpen={showDetail}
         onClose={() => setShowDetail(false)}
-        recipe={recipe}
+        recipe={recipeWithImage}
         nutritions={nutritions}
         ingredients={ingredients}
         missingIngredients={missingIngredients}

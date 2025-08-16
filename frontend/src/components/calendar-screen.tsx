@@ -373,7 +373,7 @@ export default function CalendarScreen() {
                                   <div className="flex items-center gap-3">
                                     <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100">
                                       <img
-                                        src={meal.image}
+                                        src={meal.image || (require("@/lib/recipe-images").getCachedRecipeImage(meal.id) || "/placeholder.svg")}
                                         alt={meal.name}
                                         className="w-full h-full object-cover"
                                         onError={(e) => {
