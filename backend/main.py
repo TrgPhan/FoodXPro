@@ -42,6 +42,7 @@ from routers.profile.api import router as profile_router
 from routers.allergy.api import router as allergy_router
 from routers.daily_meals.api import router as daily_meals_router
 from routers.health_conditions.api import router as health_conditions_router
+from routers.ingredients.api import router as ingredients_router
 
 logger = get_logger("recipe-assistant")
 
@@ -86,3 +87,4 @@ app.include_router(auth_router, prefix="/auth", tags=["Auth"])
 app.include_router(allergy_router, prefix="/allergies", tags=["Allergies"])
 app.include_router(daily_meals_router, prefix="/daily-meals", tags=["Daily Meals"])
 app.include_router(health_conditions_router, prefix="/health-conditions", tags=['Health Conditions'])
+app.include_router(ingredients_router, prefix="/ingredients", tags=["Ingredients"])
