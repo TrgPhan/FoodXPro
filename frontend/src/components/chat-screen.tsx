@@ -371,6 +371,8 @@ export default function ChatScreen() {
                         const recipe = suggestion.recipe
                         const nutritions = suggestion.nutritions || []
                         const missingIngredients = suggestion.missing_ingredients || []
+                        const missingCount = suggestion.missing_count || 0
+                        const isAvailable = missingCount === 0
                         
                         return (
                           <FoodCard
@@ -378,7 +380,7 @@ export default function ChatScreen() {
                             recipe={recipe}
                             nutritions={nutritions}
                             ingredients={[]}
-                            isAvailable={false}
+                            isAvailable={isAvailable}
                             missingIngredients={missingIngredients}
                           />
                         )

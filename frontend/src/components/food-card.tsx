@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Clock, Users, Flame, Beef, Wheat, Droplets, AlertTriangle, Sparkles, Plus, Check, X } from "lucide-react"
 import FoodDetailModal from "@/components/food-detail-modal"
 import { useDailyMeals } from "@/hooks/useDailyMeals"
+import { useRecipeImage } from "@/hooks/useRecipeImage"
 
 interface Recipe {
   id: number
@@ -192,8 +193,16 @@ export default function FoodCard({
 
   const mealInfo = getMealPeriodInfo()
 
-  // determine if image should load
-  const shouldLoadImage = recipe.image_url && !recipe.image_url.includes("allrecipes.com/recipe")
+  // Use recipe image hook (with caching)
+  const { imageUrl: fetchedImage } = useRecipeImage(recipe.id, recipe.name)
+
+  // Decide which image to display
+  const displayImage =
+    recipe.image_url && !recipe.image_url.includes("allrecipes.com/recipe")
+      ? recipe.image_url
+      : fetchedImage
+
+  const shouldLoadImage = displayImage && displayImage !== "/placeholder.svg" && displayImage.trim() !== ""
 
   return (
     <>
@@ -222,7 +231,7 @@ export default function FoodCard({
             {/* Background Image */}
             <div className="absolute inset-0 z-0">
               <img
-                src={shouldLoadImage ? recipe.image_url : "/placeholder.svg"}
+                src={shouldLoadImage ? displayImage : "/placeholder.svg"}
                 alt={recipe.name}
                 className="w-full h-full object-cover"
                 onError={(e) => {
@@ -255,7 +264,7 @@ export default function FoodCard({
               {/* Image Container */}
               <div className="w-14 h-14 bg-white rounded-2xl shadow-sm border border-gray-200 flex items-center justify-center mb-3 overflow-hidden">
                 <img
-                  src={shouldLoadImage ? recipe.image_url : "/placeholder.svg"}
+                  src={shouldLoadImage ? displayImage : "/placeholder.svg"}
                   alt={recipe.name}
                   className="w-full h-full object-cover rounded-2xl"
                   onError={(e) => {

@@ -327,6 +327,11 @@ export default function ProfileScreen() {
                         <h3 className="text-base font-medium text-gray-900">Calories</h3>
                         <p className="text-xs text-gray-500">Hôm nay</p>
                       </div>
+                      {caloriePercentage > 100 && (
+                        <div className="ml-auto">
+                          <AlertTriangle size={16} className="text-red-500" />
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -372,7 +377,7 @@ export default function ProfileScreen() {
                         <span className="text-xs font-medium text-orange-700">Lượng calo</span>
                       </div>
                       <div className="text-base font-semibold text-orange-800 transition-all duration-1000 ease-out">
-                        {animateCharts ? calorieData.current : 0} / {calorieData.goal.toFixed(0)} kcal
+                        {animateCharts ? calorieData.current : 0} / {calorieData.goal.toFixed(1)} kcal
                       </div>
                     </div>
                   </div>
@@ -406,6 +411,12 @@ export default function ProfileScreen() {
                           <div className="flex items-center gap-2 mb-2">
                             {getIcon(macro.name)}
                             <span className="text-sm font-medium text-gray-800">{macro.name}</span>
+                            {percentage > 100 && (
+                              <div className="flex items-center gap-1 ml-auto">
+                                <AlertTriangle size={14} className="text-red-500" />
+                                <span className="text-xs text-red-500 font-medium">thừa</span>
+                              </div>
+                            )}
                           </div>
                           <div className="flex items-center gap-3">
                             <div className="text-base font-semibold text-gray-800 transition-all duration-1000 ease-out">
@@ -421,7 +432,7 @@ export default function ProfileScreen() {
                               </div>
                             </div>
                             <div className="text-xs text-gray-600 font-medium">
-                              / {macro.goal.toFixed(0)} {macro.unit}
+                              / {macro.goal.toFixed(1)} {macro.unit}
                             </div>
                           </div>
                         </div>
@@ -611,20 +622,36 @@ export default function ProfileScreen() {
 
                   <ScrollArea className="h-64">
                     <div className="space-y-4 pr-4">
-                      {nutrients.map((nutrient, index) => (
-                        <div key={nutrient.name}>
-                          <div className="flex justify-between text-sm mb-2">
-                            <span className="font-medium text-gray-700">{nutrient.name}</span>
-                            <span className="text-gray-600 transition-all duration-1000 ease-out text-xs">
-                              {animateCharts ? nutrient.current : 0}/{nutrient.goal} {nutrient.unit}
-                            </span>
+                      {nutrients.map((nutrient, index) => {
+                        const percentage = (nutrient.current / nutrient.goal) * 100
+                        const isExcess = percentage > 100
+                        
+                        return (
+                          <div key={nutrient.name}>
+                            <div className="flex items-center justify-between text-sm mb-2">
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium text-gray-700">{nutrient.name}</span>
+                                {isExcess && (
+                                  <div className="flex items-center gap-1">
+                                    <AlertTriangle size={12} className="text-red-500" />
+                                    <span className="text-xs text-red-500 font-medium">thừa</span>
+                                  </div>
+                                )}
+                              </div>
+                              <span className={`transition-all duration-1000 ease-out text-xs ${isExcess ? 'text-red-600 font-medium' : 'text-gray-600'}`}>
+                                {animateCharts ? nutrient.current : 0}/{nutrient.goal.toFixed(1)} {nutrient.unit}
+                              </span>
+                            </div>
+                            <Progress
+                              value={animateCharts ? (nutrient.current / nutrient.goal) * 100 : 0}
+                              className={`h-1.5 transition-all duration-1000 ease-out ${isExcess ? 'bg-red-100' : ''}`}
+                              style={{
+                                '--progress-background': isExcess ? '#ef4444' : undefined
+                              } as React.CSSProperties}
+                            />
                           </div>
-                          <Progress
-                            value={animateCharts ? (nutrient.current / nutrient.goal) * 100 : 0}
-                            className="h-1.5 transition-all duration-1000 ease-out"
-                          />
-                        </div>
-                      ))}
+                        )
+                      })}
                     </div>
                   </ScrollArea>
                 </Card>

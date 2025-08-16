@@ -23,6 +23,7 @@ import {
 import { UserProfileForm as UserProfileFormType, UserProfile } from "@/lib/types"
 import { addUserProfile, editUserProfile } from "@/lib/profile"
 import { searchAllergies, AllergySearchResult } from "@/lib/allergies"
+import { searchHealthConditions, HealthConditionSearchResult } from "@/lib/health-conditions"
 
 interface UserProfileFormProps {
   isOpen: boolean
@@ -64,6 +65,10 @@ const UserProfileForm = ({ isOpen, onClose, onSuccess, isEdit = false, initialDa
   const [showAllergySearch, setShowAllergySearch] = useState(false)
   const [isSearchingAllergies, setIsSearchingAllergies] = useState(false)
   const [allergySearchCache, setAllergySearchCache] = useState<Map<string, AllergySearchResult[]>>(new Map())
+  const [healthConditionSearchResults, setHealthConditionSearchResults] = useState<HealthConditionSearchResult[]>([])
+  const [showHealthConditionSearch, setShowHealthConditionSearch] = useState(false)
+  const [isSearchingHealthConditions, setIsSearchingHealthConditions] = useState(false)
+  const [healthConditionSearchCache, setHealthConditionSearchCache] = useState<Map<string, HealthConditionSearchResult[]>>(new Map())
 
   // Load initial data when editing
   useEffect(() => {
@@ -239,6 +244,53 @@ const UserProfileForm = ({ isOpen, onClose, onSuccess, isEdit = false, initialDa
     [allergySearchCache]
   )
 
+  // Search health conditions function with debounce and cache
+  const searchHealthConditionsHandler = useCallback(
+    (() => {
+      let timeoutId: NodeJS.Timeout
+      return (query: string) => {
+        clearTimeout(timeoutId)
+        
+        // Show loading immediately for better UX
+        if (query.trim().length >= 1) {
+          setIsSearchingHealthConditions(true)
+          setShowHealthConditionSearch(true)
+        } else {
+          setHealthConditionSearchResults([])
+          setShowHealthConditionSearch(false)
+          setIsSearchingHealthConditions(false)
+          return
+        }
+
+        timeoutId = setTimeout(async () => {
+          const trimmedQuery = query.trim().toLowerCase()
+          
+          // Check cache first
+          if (healthConditionSearchCache.has(trimmedQuery)) {
+            setHealthConditionSearchResults(healthConditionSearchCache.get(trimmedQuery) || [])
+            setIsSearchingHealthConditions(false)
+            return
+          }
+
+          try {
+            const results = await searchHealthConditions(query, 10)
+            
+            // Cache the results
+            setHealthConditionSearchCache(prev => new Map(prev).set(trimmedQuery, results))
+            setHealthConditionSearchResults(results)
+            setShowHealthConditionSearch(true)
+          } catch (error) {
+            console.error('Error searching health conditions:', error)
+            setHealthConditionSearchResults([])
+          } finally {
+            setIsSearchingHealthConditions(false)
+          }
+        }, 200) // Reduced to 200ms for faster response
+      }
+    })(),
+    [healthConditionSearchCache]
+  )
+
   const addAllergy = () => {
     if (allergyInput.trim()) {
       // Check if allergy already exists
@@ -290,16 +342,44 @@ const UserProfileForm = ({ isOpen, onClose, onSuccess, isEdit = false, initialDa
 
   const addHealthCondition = () => {
     if (healthConditionInput.trim()) {
-      const newCondition = {
+      // Check if health condition already exists
+      const exists = formData.health_conditions.some(existing => existing.name.toLowerCase() === healthConditionInput.trim().toLowerCase())
+      if (exists) {
+        return
+      }
+      
+      const newHealthCondition = {
         id: Date.now(),
         name: healthConditionInput.trim(),
       }
       setFormData((prev) => ({
         ...prev,
-        health_conditions: [...prev.health_conditions, newCondition],
+        health_conditions: [...prev.health_conditions, newHealthCondition],
       }))
       setHealthConditionInput("")
+      setShowHealthConditionSearch(false)
+      setHealthConditionSearchResults([])
     }
+  }
+
+  const selectHealthConditionFromSearch = (healthCondition: HealthConditionSearchResult) => {
+    // Check if health condition already exists
+    const exists = formData.health_conditions.some(existing => existing.name.toLowerCase() === healthCondition.name.toLowerCase())
+    if (exists) {
+      return
+    }
+    
+    const newHealthCondition = {
+      id: healthCondition.id,
+      name: healthCondition.name,
+    }
+    setFormData((prev) => ({
+      ...prev,
+      health_conditions: [...prev.health_conditions, newHealthCondition],
+    }))
+    setHealthConditionInput("")
+    setShowHealthConditionSearch(false)
+    setHealthConditionSearchResults([])
   }
 
   const removeHealthCondition = (id: number) => {
@@ -676,17 +756,57 @@ const UserProfileForm = ({ isOpen, onClose, onSuccess, isEdit = false, initialDa
                     </div>
 
                     <div className="space-y-4">
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 relative">
                         <Input
                           value={healthConditionInput}
-                          onChange={(e) => setHealthConditionInput(e.target.value)}
-                          placeholder="Nhập tình trạng sức khỏe (ví dụ: Tiểu đường, Huyết áp cao...)"
+                          onChange={(e) => {
+                            setHealthConditionInput(e.target.value)
+                            searchHealthConditionsHandler(e.target.value)
+                          }}
+                          placeholder="Tìm kiếm tình trạng sức khỏe (ví dụ: Tiểu đường, Huyết áp cao...)"
                           className="flex-1"
                           onKeyPress={(e) => e.key === "Enter" && addHealthCondition()}
+                         onFocus={() => {
+                           if (healthConditionInput.trim().length >= 1) {
+                             setShowHealthConditionSearch(true)
+                           }
+                         }}
+                         onBlur={() => {
+                           // Delay hiding to allow clicking on search results
+                           setTimeout(() => setShowHealthConditionSearch(false), 200)
+                         }}
                         />
                         <Button onClick={addHealthCondition} size="sm" className="bg-blue-600 hover:bg-blue-700">
                           <Plus size={16} />
                         </Button>
+                       
+                       {/* Search Results Dropdown */}
+                       {showHealthConditionSearch && (
+                         <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto">
+                           {isSearchingHealthConditions ? (
+                             <div className="p-3 text-center text-gray-500">
+                               Đang tìm kiếm...
+                             </div>
+                           ) : healthConditionSearchResults.length > 0 ? (
+                             healthConditionSearchResults.map((healthCondition) => (
+                               <button
+                                 key={healthCondition.id}
+                                 onClick={() => selectHealthConditionFromSearch(healthCondition)}
+                                 className="w-full p-3 text-left hover:bg-gray-50 border-b border-gray-100 last:border-b-0 flex items-center gap-3"
+                               >
+                                 <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
+                                   <Heart size={12} className="text-blue-600" />
+                                 </div>
+                                 <span className="text-sm font-medium">{healthCondition.name}</span>
+                               </button>
+                             ))
+                           ) : healthConditionInput.trim().length >= 1 ? (
+                             <div className="p-3 text-center text-gray-500">
+                               Không tìm thấy kết quả
+                             </div>
+                           ) : null}
+                         </div>
+                       )}
                       </div>
 
                       {formData.health_conditions.length > 0 && (
@@ -748,4 +868,5 @@ const UserProfileForm = ({ isOpen, onClose, onSuccess, isEdit = false, initialDa
 }
 
 export default UserProfileForm
+
 
