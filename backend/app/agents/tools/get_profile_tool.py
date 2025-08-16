@@ -49,3 +49,4 @@ async def get_profile_tool() -> dict:
 
 	return {"tool": "get_profile", "raw_data": user_data}
 
+

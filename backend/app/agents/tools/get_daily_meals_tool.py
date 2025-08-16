@@ -43,14 +43,16 @@ async def get_daily_meals_core(
         recipe = meal.recipe
         recipe_name = recipe.name
         recipe_image = recipe.image_url
+        servings_eaten = meal.servings_eaten
+        calories = recipe.calories
         if meal.eat_at == 'breakfast':
-            breakfast.append({"id": recipe_id, "name": recipe_name, "image": recipe_image})
+            breakfast.append({"id": recipe_id, "name": recipe_name, "image": recipe_image, "servings_eaten": servings_eaten, "calories": calories})
         elif meal.eat_at == 'lunch':
-            lunch.append({"id": recipe_id, "name": recipe_name, "image": recipe_image})
+            lunch.append({"id": recipe_id, "name": recipe_name, "image": recipe_image, "servings_eaten": servings_eaten, "calories": calories})
         elif meal.eat_at == 'dinner':
-            dinner.append({"id": recipe_id, "name": recipe_name, "image": recipe_image})
+            dinner.append({"id": recipe_id, "name": recipe_name, "image": recipe_image, "servings_eaten": servings_eaten, "calories": calories})
         else:
-            snack.append({"id": recipe_id, "name": recipe_name, "image": recipe_image})
+            snack.append({"id": recipe_id, "name": recipe_name, "image": recipe_image, "servings_eaten": servings_eaten, "calories": calories})
 
         for nutrition in recipe.recipe_has_nutrition:
             nutrition_id = nutrition.nutrition_id

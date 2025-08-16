@@ -66,3 +66,4 @@ async def get_ingredient_tool() -> dict:
 		data = await get_ingredients_core(user=user, db=db_session)
 	return {"tool": "get_ingredients", "raw_data": data}
 
+

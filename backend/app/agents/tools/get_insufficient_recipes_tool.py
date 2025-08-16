@@ -77,3 +77,4 @@ async def get_insufficient_recipes_tool(
 
 	return {"tool": "get_insufficient_recipes", "raw_data": insufficient_recipes}
 
+

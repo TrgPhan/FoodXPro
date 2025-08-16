@@ -66,3 +66,4 @@ async def get_sufficient_recipes_tool(
 
 	return {"tool": "get_sufficient_recipes", "raw_data": sufficient_recipes}
 
+
