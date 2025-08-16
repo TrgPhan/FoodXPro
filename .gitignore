@@ -1,42 +1,64 @@
-# VSCode
-.vscode/
-# Environment files
-.env
 # Database files
-.db
-.json
-.sqlite3
-
-# Node modules
-node_modules/
-
+*.db
+*.json
+*.sqlite3
+*.bin
+*.pickle
 # Python
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+venv/
+.venv/
 
-# Logs
-*.log
-logs/
+env/
+ENV/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Environment files
+.env
+
+# Database files
+*.db
+
+# Image files
+*.jpg
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IDEs
+.vscode/
+.idea/
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Node.js (for frontend)
+node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+package-lock.json
+yarn.lock
 
-# OS generated files
-.DS_Store
-Thumbs.db
+# Logs
+logs/
+*.log
 
-# Build output
-dist/
-build/
-out/
-
-# Coverage reports
+# Coverage
 coverage/
-*.lcov
 
-# IDE files
-.idea/
-*.suo
-*.user
+# VSCode
+.vscode/
