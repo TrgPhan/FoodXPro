@@ -37,6 +37,7 @@ from db import Base, engine
 from app.services.vectorstore.embedder import init_chroma_db
 
 from routers.recipes.api import router as recipes_router
+from routers.profile.api import router as profile_router
 
 logger = get_logger("recipe-assistant")
 
@@ -76,3 +77,4 @@ app.add_middleware(
 )
 
 app.include_router(recipes_router, prefix="/recipes", tags=["Recipes"])
+app.include_router(profile_router, prefix="/profile", tags=["Profile"])
