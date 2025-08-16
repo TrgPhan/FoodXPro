@@ -29,20 +29,19 @@ from crud import init_db_data
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from utils.logger_config import get_logger
-
+from routers.chat.api import router as chat_router
+from routers.profile.api import router as profile_router
+from routers.ingredients.api import router as ingredients_router
+from routers.recipes.api import router as recipes_router
+from routers.auth.api import router as auth_router
+from routers.daily_meals.api import router as daily_meals_router
+from routers.allergy.api import router as allergy_router
+from routers.health_conditions.api import router as health_conditions_router
 from models import ingredients, nutritions, recipeHaveNutrition, recipeIncludeIngredient
 from models import users, userAllergies, userHealthConditions, userIngredients, userMeals
 from models import allergies, healthConditions, recipes, ingredientAllergies, healthConditionAffectNutrition
 from db import Base, engine
 from app.services.vectorstore.embedder import init_chroma_db
-
-from routers.auth.api import router as auth_router
-from routers.recipes.api import router as recipes_router
-from routers.profile.api import router as profile_router
-from routers.allergy.api import router as allergy_router
-from routers.daily_meals.api import router as daily_meals_router
-from routers.health_conditions.api import router as health_conditions_router
-from routers.ingredients.api import router as ingredients_router
 
 logger = get_logger("recipe-assistant")
 
@@ -57,7 +56,6 @@ origins = [
 
 ]
 
-
 @app.on_event("startup")
 async def startup_event():
     # create a new database if there is none
@@ -66,12 +64,10 @@ async def startup_event():
         await init_db_data()
         # await init_chroma_db()
 
-
 @app.get("/")
 def root():
     logger.info("Root endpoint called")
     return {"message": "Recipe Assistant API is running!"}
-
 
 app.add_middleware(
     CORSMiddleware,
@@ -81,10 +77,11 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
-app.include_router(recipes_router, prefix="/recipes", tags=["Recipes"])
-app.include_router(profile_router, prefix="/profile", tags=["Profile"])
-app.include_router(auth_router, prefix="/auth", tags=["Auth"])
-app.include_router(allergy_router, prefix="/allergies", tags=["Allergies"])
-app.include_router(daily_meals_router, prefix="/daily-meals", tags=["Daily Meals"])
-app.include_router(health_conditions_router, prefix="/health-conditions", tags=['Health Conditions'])
-app.include_router(ingredients_router, prefix="/ingredients", tags=["Ingredients"])
+app.include_router(chat_router,prefix="/api", tags=["Chat"])
+app.include_router(profile_router,prefix="/profile", tags=["Profile"])
+app.include_router(ingredients_router,prefix="/ingredients", tags=["Ingredients"])
+app.include_router(recipes_router,prefix="/recipes", tags=["Recipes"])
+app.include_router(auth_router,prefix="/auth", tags=["Auth"])
+app.include_router(daily_meals_router,prefix="/daily-meals", tags=["Daily Meals"])
+app.include_router(allergy_router,prefix="/allergies", tags=["Allergies"])
+app.include_router(health_conditions_router,prefix="/health-conditions", tags=["Health Conditions"])

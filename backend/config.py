@@ -13,11 +13,9 @@ RECIPES_FOR_CHROMA_DIR = os.path.join(BASE_DIR, 'data', 'processed')
 CHROMA_DB_DIR = os.path.join(BASE_DIR, 'data', 'chroma_db')
 
 # JWT Configuration
-SECRET_KEY = os.getenv(
-    "SECRET_KEY", "f19b27d44c67e928ab3f03e1c4b079ff55bc8632c63bfe0dc914c25c64a678de")
+SECRET_KEY = os.getenv("SECRET_KEY", "f19b27d44c67e928ab3f03e1c4b079ff55bc8632c63bfe0dc914c25c64a678de")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = int(
-    os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
 
 GOGGLE_API_KEY = "AIzaSyDEqXPdZTO-eyljOfYlOiaUSmV7e6A308I"
 CSE_ID = "f6f7003b211454a91"

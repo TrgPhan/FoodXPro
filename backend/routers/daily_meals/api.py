@@ -202,7 +202,7 @@ async def delete_daily_meal(user: Annotated[Users, Depends(get_current_user)], d
             detail="No such meal found"
         )
     
-    db.delete(user_meal)
+    await db.delete(user_meal)
     await db.commit()
     
     return{

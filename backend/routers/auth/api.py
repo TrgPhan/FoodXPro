@@ -4,6 +4,7 @@ from datetime import timedelta
 from typing import Annotated
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy import update
 from utils.auth import get_password_hash, verify_password, create_access_token, get_current_user
 from config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
 from db import get_db
@@ -54,7 +55,8 @@ async def register(user: UserRegister, db: AsyncSession = Depends(get_db)):
 @router.put("/change_password")
 async def change_password(password: Annotated[str, Query(..., description="new password")], user: Users = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     hashed_password = get_password_hash(password)
-    user.hashed_password = hashed_password
+
+    await db.execute(update(Users).where(Users.id == user.id).values(hashed_password=hashed_password))
     
     await db.commit()
 

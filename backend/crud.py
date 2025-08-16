@@ -18,7 +18,7 @@ async def init_health_conditions(db):
     for health_condition in data:
         health_condition_name = health_condition["Health Condition Name"]
         new_health_condition = healthConditions.HealthConditions(
-            name=health_condition_name
+            name = health_condition_name
         )
 
         db.add(new_health_condition)
@@ -37,9 +37,9 @@ async def init_health_conditions(db):
             nutrition_id = nutrition_id.scalar()
 
             new_health_condition_affect_nutrition = healthConditionAffectNutrition.HealthConditionAffectNutrition(
-                health_condition_id=health_condition_id,
-                nutrition_id=nutrition_id,
-                adjusted_value=adjusted_value
+                health_condition_id = health_condition_id,
+                nutrition_id = nutrition_id,
+                adjusted_value = adjusted_value
             )
 
             db.add(new_health_condition_affect_nutrition)
@@ -55,14 +55,13 @@ async def init_allergies(db):
 
     for ingredient_allergy in ingredient_allergies:
         for ingredient_name, allergy_list in ingredient_allergy.items():
-            ingredient_name = ingredient_name.strip().lower().replace('-',
-                                                                      " ").replace('®', ' ')
+            ingredient_name = ingredient_name.strip().lower().replace('-', " ").replace('®', ' ')
             ingredient_name = " ".join(ingredient_name.split())
             for allergy_name in allergy_list:
                 if allergy_name not in added_allergies:
                     added_allergies.add(allergy_name)
                     new_allergy = allergies.Allergies(
-                        name=allergy_name.replace('_', " ")
+                        name = allergy_name.replace('_', " ")
                     )
 
                     db.add(new_allergy)
@@ -549,15 +548,13 @@ async def edit_user_data(user: users.Users, edit_form: UserDataForm):
             select(userHealthConditions.UserHealthConditions.health_condition_id)
             .where(userHealthConditions.UserHealthConditions.user_id == user.id)
         )
-        current_health_conditions_id = set(
-            current_health_conditions_id.scalars().all())
+        current_health_conditions_id = set(current_health_conditions_id.scalars().all())
 
         new_health_conditions_id = await db.execute(
             select(healthConditions.HealthConditions.id)
             .where(healthConditions.HealthConditions.name.in_(edit_form.health_condition))
         )
-        new_health_conditions_id = set(
-            new_health_conditions_id.scalars().all())
+        new_health_conditions_id = set(new_health_conditions_id.scalars().all())
 
         removed_health_conditions_id = current_health_conditions_id - new_health_conditions_id
 
@@ -578,6 +575,7 @@ async def edit_user_data(user: users.Users, edit_form: UserDataForm):
                 )
                 db.add(new_user_health_condition)
 
+
         await db.commit()
 
 
@@ -595,10 +593,10 @@ async def add_user_data(user: users.Users, add_form: UserDataForm):
         user.goal = add_form.goal
         user.sex = add_form.sex
         user.activity_level = add_form.activity_level
-
+        
         # Store user_id before committing
         user_id = user.id
-
+        
         await db.commit()
 
         add_allergies_id = await db.execute(
@@ -682,7 +680,6 @@ async def get_user_allergic_ingredients(user: users.Users):
             print(f"Error fetching user allergic ingredient: {e}")
             return []
 
-
 async def get_user_health_conditions(user: users.Users):
     async with AsyncSessionLocal() as db:
         health_conditions_query = await db.execute(
@@ -693,16 +690,13 @@ async def get_user_health_conditions(user: users.Users):
         health_conditions = health_conditions_query.scalars().all()
         return health_conditions
 
-
 async def get_affected_nutritions(health_condition_id: int):
     async with AsyncSessionLocal() as db:
         affected_nutritions_query = await db.execute(
-            select(nutritions.Nutritions.name,
-                   healthConditionAffectNutrition.HealthConditionAffectNutrition.adjusted_value)
+            select(nutritions.Nutritions.name, healthConditionAffectNutrition.HealthConditionAffectNutrition.adjusted_value)
             .join(nutritions.Nutritions, healthConditionAffectNutrition.HealthConditionAffectNutrition.nutrition_id == nutritions.Nutritions.id)
             .where(healthConditionAffectNutrition.HealthConditionAffectNutrition.health_condition_id == health_condition_id)
         )
         affected_nutritions = affected_nutritions_query.all()
-        affected_nutritions_dict = {row[0]: row[1]
-                                    for row in affected_nutritions}
+        affected_nutritions_dict = {row[0]: row[1] for row in affected_nutritions}
         return affected_nutritions_dict
