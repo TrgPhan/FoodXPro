@@ -1,3 +1,4 @@
+
 from fastapi import APIRouter, HTTPException, status, Depends, Body, Path, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -11,6 +12,7 @@ from models.allergies import Allergies
 from models.ingredientAllergies import IngredientAllergies
 
 router = APIRouter()
+
 
 @router.get("/search", response_model=List[AllergyResponse])
 async def search_allergy(name: Annotated[str, Query(..., description="Allergy name")], user: Users = Depends(get_current_user), db: AsyncSession = Depends(get_db), limit: int = 20):
@@ -28,6 +30,7 @@ async def search_allergy(name: Annotated[str, Query(..., description="Allergy na
 
     return allergy_list
 
+
 @router.post("/add")
 async def add_allergy(allergy_and_ingredients: Annotated[AllergyAddForm, Body(..., description="Allergy and Ingredients to add")], user: Users = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     allergy_name = allergy_and_ingredients.name.strip().lower().replace("_", " ")
@@ -37,13 +40,13 @@ async def add_allergy(allergy_and_ingredients: Annotated[AllergyAddForm, Body(..
     allergy_exists = allergy_exists.scalar_one_or_none()
 
     if allergy_exists:
-        return{
+        return {
             "status": "failed",
             "message": "Allergy is already in the database"
         }
 
     new_allergy = Allergies(
-        name = allergy_name
+        name=allergy_name
     )
 
     db.add(new_allergy)
@@ -53,8 +56,8 @@ async def add_allergy(allergy_and_ingredients: Annotated[AllergyAddForm, Body(..
 
     for ingredient_id in allergy_and_ingredients.ingredient_ids:
         new_ingredient_allergy = IngredientAllergies(
-            ingredient_id = ingredient_id,
-            allergy_id = allergy_id
+            ingredient_id=ingredient_id,
+            allergy_id=allergy_id
         )
 
         db.add(new_ingredient_allergy)

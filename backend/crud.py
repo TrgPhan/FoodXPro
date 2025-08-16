@@ -73,7 +73,7 @@ async def init_allergies(db):
                 else:
                     allergy_id = await db.execute(
                         select(allergies.Allergies.id).where(
-                            allergies.Allergies.name == allergy_name))
+                            allergies.Allergies.name == allergy_name.replace('_', " ")))
                     allergy_id = allergy_id.scalar()
 
                 ingredient_id = await db.execute(

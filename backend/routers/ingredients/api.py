@@ -1,3 +1,4 @@
+
 from fastapi import APIRouter, HTTPException, status, Depends, Body, Path, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -18,10 +19,11 @@ from config import GOGGLE_API_KEY, CSE_ID
 
 router = APIRouter()
 
+
 @router.get("/get", response_model=List[UserIngredientResponse])
-async def get_ingredients(user: Users = Depends(get_current_user), 
-                          db: AsyncSession = Depends(get_db), 
-                          sort_by: Annotated[Literal["name", "add_date", "expire_date"], 
+async def get_ingredients(user: Users = Depends(get_current_user),
+                          db: AsyncSession = Depends(get_db),
+                          sort_by: Annotated[Literal["name", "add_date", "expire_date"],
                                              Query(description="Field to sort by")] = "expire_date",
                           ascending: bool = True):
     ingredient_list = []
@@ -51,24 +53,27 @@ async def get_ingredients(user: Users = Depends(get_current_user),
         expire_date = ingredient.expire_at
 
         ingredient_list.append({
-                "id": id,
-                'name': name,
-                'add_date': added_at,
-                'expire_date': expire_date
+            "id": id,
+            'name': name,
+            'add_date': added_at,
+            'expire_date': expire_date
         })
 
     return ingredient_list
-    
+
+
 @router.post("/add")
 async def add_ingredient(ingredient: Annotated[IngredientAddForm, Body(..., description="Ingredient to add")], user: Users = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    ingredient.name = ingredient.name.strip().lower().replace('_', " ").replace('®', ' ').replace("-", " ")
+    ingredient.name = ingredient.name.strip().lower().replace(
+        '_', " ").replace('®', ' ').replace("-", " ")
     ingredient.name = " ".join(ingredient.name.split())
     result = await db.execute(select(Ingredients.id).where(Ingredients.name == ingredient.name))
     ingredient_id = result.scalar_one_or_none()
 
     if ingredient_id is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="ingredient not found")
-    
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="ingredient not found")
+
     existing = await db.execute(
         select(UserIngredients).where(
             UserIngredients.user_id == user.id,
@@ -80,12 +85,12 @@ async def add_ingredient(ingredient: Annotated[IngredientAddForm, Body(..., desc
         raise HTTPException(status_code=400, detail="Ingredient already added")
 
     new_user_ingredient = UserIngredients(
-        user_id = user.id,
-        ingredient_id = ingredient_id,
-        added_at = ingredient.add_date,
-        expire_at = ingredient.expire_date
+        user_id=user.id,
+        ingredient_id=ingredient_id,
+        added_at=ingredient.add_date,
+        expire_at=ingredient.expire_date
     )
-    
+
     db.add(new_user_ingredient)
     await db.commit()
 
@@ -94,6 +99,7 @@ async def add_ingredient(ingredient: Annotated[IngredientAddForm, Body(..., desc
         "message": "Ingredient added successfully"
     }
 
+
 @router.put("/edit")
 async def edit_ingredient(ingredient: Annotated[IngredientEditForm, Body(..., description="Ingredient to edit")], user: Users = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(UserIngredients).where(
@@ -101,17 +107,19 @@ async def edit_ingredient(ingredient: Annotated[IngredientEditForm, Body(..., de
     user_ingredient = result.scalars().first()
 
     if not user_ingredient:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="user doesn't have this ingredient to edit")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail="user doesn't have this ingredient to edit")
 
     if ingredient.expire_date:
         user_ingredient.expire_at = ingredient.expire_date
 
     await db.commit()
 
-    return{
+    return {
         "status": "success",
         "message": "Ingredient edited successfully"
     }
+
 
 @router.delete("/delete/{id}")
 async def delete_ingredient(id: Annotated[int, Path(..., description="Ingredient ID")], user: Users = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
@@ -120,8 +128,9 @@ async def delete_ingredient(id: Annotated[int, Path(..., description="Ingredient
     user_ingredient = result.scalar_one_or_none()
 
     if not user_ingredient:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="ingredient not found")
-    
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="ingredient not found")
+
     await db.delete(user_ingredient)
     await db.commit()
 
@@ -130,8 +139,9 @@ async def delete_ingredient(id: Annotated[int, Path(..., description="Ingredient
         "message": "Ingredient deleted successfully"
     }
 
+
 @router.get("/search", response_model=List[IngredientResponse])
-async def search_ingredient(name: Annotated[str, Query(..., description="Ingredient name")], user: Users = Depends(get_current_user), 
+async def search_ingredient(name: Annotated[str, Query(..., description="Ingredient name")], user: Users = Depends(get_current_user),
                             db: AsyncSession = Depends(get_db), limit: int = 20, ascending: Annotated[bool, Query(..., description="Sort order")] = False):
     name = name.strip().lower().replace('_', " ").replace('®', ' ').replace("-", " ")
     name = " ".join(name.split())
@@ -151,6 +161,7 @@ async def search_ingredient(name: Annotated[str, Query(..., description="Ingredi
 
     return ingredient_list
 
+
 @router.get("/get-ingredient-image")
 async def get_ingredient_image(ingredient_id: Annotated[int, Query(description="Ingredient ID")], db: Annotated[AsyncSession, Depends(get_db)]):
     ingredient = await db.execute(select(Ingredients.name).where(Ingredients.id == ingredient_id))
@@ -161,7 +172,7 @@ async def get_ingredient_image(ingredient_id: Annotated[int, Query(description="
             status_code=404,
             detail="ingredient not found"
         )
-    
+
     url = f"https://www.googleapis.com/customsearch/v1?q={ingredient}&cx={CSE_ID}&searchType=image&key={GOGGLE_API_KEY}"
     response = requests.get(url)
     data = response.json()

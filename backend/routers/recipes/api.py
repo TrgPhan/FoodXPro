@@ -113,6 +113,7 @@ async def get_insufficient_recipes(
         raise HTTPException(
             status_code=500, detail=f"Error processing request: {str(e)}")
 
+
 @router.get("/get-recipe-image")
 async def get_recipe_image(recipe_id: Annotated[int, Query(description="Recipe ID")], db: Annotated[AsyncSession, Depends(get_db)]):
     recipe = await db.execute(select(Recipes.name).where(Recipes.id == recipe_id))
@@ -123,7 +124,7 @@ async def get_recipe_image(recipe_id: Annotated[int, Query(description="Recipe I
             status_code=404,
             detail="recipe not found"
         )
-    
+
     url = f"https://www.googleapis.com/customsearch/v1?q={recipe}&cx={CSE_ID}&searchType=image&key={GOGGLE_API_KEY}"
     response = requests.get(url)
     data = response.json()
