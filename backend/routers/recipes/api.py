@@ -5,12 +5,15 @@ from typing import List, Literal, Annotated
 import os
 import json
 import traceback
+import requests
 from db import get_db
 from utils.auth import get_current_user
 from models.users import Users
+from models.recipes import Recipes
 from routers.recipes.schemas import *
 from crud import get_user_ingredients, get_recipes_ingredients_data, get_recipes_data, get_recipe_nutrition_data, get_recipes_nutritions_data, get_user_allergic_ingredients
 from utils.recipes import get_sufficient_recipes as get_sufficient_recipes_util, get_insufficient_recipes as get_insufficient_recipes_util
+from config import GOGGLE_API_KEY, CSE_ID
 import time
 
 router = APIRouter()
@@ -109,3 +112,28 @@ async def get_insufficient_recipes(
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Error processing request: {str(e)}")
+
+@router.get("/get-recipe-image")
+async def get_recipe_image(recipe_id: Annotated[int, Query(description="Recipe ID")], db: Annotated[AsyncSession, Depends(get_db)]):
+    recipe = await db.execute(select(Recipes.name).where(Recipes.id == recipe_id))
+    recipe = recipe.scalar_one_or_none()
+
+    if recipe is None:
+        raise HTTPException(
+            status_code=404,
+            detail="recipe not found"
+        )
+    
+    url = f"https://www.googleapis.com/customsearch/v1?q={recipe}&cx={CSE_ID}&searchType=image&key={GOGGLE_API_KEY}"
+    response = requests.get(url)
+    data = response.json()
+
+    items = data.get("items", [])
+    if items:
+        first_image_url = items[0]["link"]
+        return first_image_url
+    else:
+        return {
+            "status": "failed",
+            "message": "huhu"
+        }

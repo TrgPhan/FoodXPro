@@ -13,11 +13,12 @@ RECIPES_FOR_CHROMA_DIR = os.path.join(BASE_DIR, 'data', 'processed')
 CHROMA_DB_DIR = os.path.join(BASE_DIR, 'data', 'chroma_db')
 
 # JWT Configuration
-SECRET_KEY = os.getenv(
-    "SECRET_KEY", "f19b27d44c67e928ab3f03e1c4b079ff55bc8632c63bfe0dc914c25c64a678de")
+SECRET_KEY = os.getenv("SECRET_KEY", "f19b27d44c67e928ab3f03e1c4b079ff55bc8632c63bfe0dc914c25c64a678de")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = int(
-    os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
+
+GOGGLE_API_KEY = "AIzaSyDa49oST0OT0dp5hgTIkQOo_Wmfxko3VUk"
+CSE_ID = "d41075d2e28184da7"
 
 NUTRITION_UNITS = {
     "Calories": "kcal",
@@ -36,4 +37,62 @@ NUTRITION_UNITS = {
     "Calcium": "mg",
     "Iron": "mg",
     "Potassium": "mg"
+}
+
+CONVERT_TO_CALORIES = {
+    "Fat": 9,
+    "Carbs": 4,
+    "Protein": 4
+}
+
+ACTIVITY_LEVELS = {
+    'Sedentary': 1.2,
+    'Lightly Active': 1.375,
+    'Moderately Active': 1.55,
+    'Very Active': 1.725,
+    'Super Active': 1.9,
+    'Không vận động': 1.2,
+    'Ít vận động': 1.375,
+    'Vận động vừa phải': 1.55,
+    'Vận động nhiều': 1.725,
+    'Vận động rất nhiều': 1.9
+}
+
+EATING_GOALS = {
+    "Bulking": {
+        "calories": 1.15,
+        "protein": 0.3,
+        "fat": 0.25,
+        "carbohydrates": 0.45
+    },
+    "Maintaining": {
+        "calories": 1.0,
+        "protein": 0.25,
+        "fat": 0.225,
+        "carbohydrates": 0.525
+    },
+    "Cutting": {
+        "calories": 0.825,
+        "protein": 0.35,
+        "fat": 0.3,
+        "carbohydrates": 0.35
+    },
+    "Tăng cân": {
+        "calories": 1.15,
+        "protein": 0.3,
+        "fat": 0.25,
+        "carbohydrates": 0.45
+    },
+    "Giữ cân": {
+        "calories": 1.0,
+        "protein": 0.25,
+        "fat": 0.225,
+        "carbohydrates": 0.525
+    },
+    "Giảm cân": {
+        "calories": 0.825,
+        "protein": 0.35,
+        "fat": 0.3,
+        "carbohydrates": 0.35
+    }
 }
