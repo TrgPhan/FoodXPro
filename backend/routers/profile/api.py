@@ -1,4 +1,3 @@
-
 from fastapi import APIRouter, HTTPException, status, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -16,23 +15,19 @@ from config import NUTRITION_UNITS
 
 router = APIRouter()
 
-
 @router.get("/get", response_model=UserResponse)
 async def get_profile(user: Users = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     user_data = await get_user_data(user)
     user_health_conditions = await get_user_health_conditions(user)
-
-    macro_goals = calculate_macors_intake(user_data.get("weight"), user_data.get("height"), user_data.get(
-        "age"), user_data.get("sex"), user_data.get("activity_level"), user_data.get("goal"))
-    micro_goals = calculate_micros_intake(
-        user_data.get("age"), user_data.get("sex"))
-
+    
+    macro_goals = calculate_macors_intake(user_data.get("weight"), user_data.get("height"), user_data.get("age"), user_data.get("sex"), user_data.get("activity_level"), user_data.get("goal"))
+    micro_goals = calculate_micros_intake(user_data.get("age"), user_data.get("sex"))
+    
     user_nutritions_goal = macro_goals | micro_goals
 
     for health_condition in user_health_conditions:
         affected_nutritions = await get_affected_nutritions(health_condition)
-        user_nutritions_goal = calculate_adjusted_value(
-            user, user_nutritions_goal, affected_nutritions)
+        user_nutritions_goal = calculate_adjusted_value(user, user_nutritions_goal, affected_nutritions)
 
     user_data["nutritions_goal"] = [
         NutritionGoal(name=name, value=value, unit=NUTRITION_UNITS[name])
@@ -41,7 +36,6 @@ async def get_profile(user: Users = Depends(get_current_user), db: AsyncSession 
 
     return user_data
 
-
 @router.put("/edit")
 async def edit_profile(edit_form: UserDataForm, user: Users = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     await edit_user_data(user, edit_form)
@@ -49,7 +43,6 @@ async def edit_profile(edit_form: UserDataForm, user: Users = Depends(get_curren
         "status": "success",
         "message": "Profile updated successfully"
     }
-
 
 @router.post("/add")
 async def add_profile(add_form: UserDataForm, user: Users = Depends(get_current_user), db: AsyncSession = Depends(get_db)):

@@ -1,7 +1,5 @@
-
 from pydantic import BaseModel
 from typing import List, Optional
-
 
 class IngredientResponse(BaseModel):
     ingredient_id: int
@@ -9,12 +7,10 @@ class IngredientResponse(BaseModel):
     required_amount: Optional[float]
     unit: Optional[str]
 
-
 class MissingIngredientResponse(BaseModel):
     ingredient_name: str
     required_amount: float
     unit: Optional[str]
-
 
 class NutritionResponse(BaseModel):
     id: int
@@ -22,7 +18,6 @@ class NutritionResponse(BaseModel):
     unit: str
     value: float
     percent: float
-
 
 class RecipeResponse(BaseModel):
     id: int
@@ -41,12 +36,10 @@ class RecipeResponse(BaseModel):
     fat: Optional[float]
     carbs: Optional[float]
 
-
 class SufficientRecipeResponse(BaseModel):
     recipe: RecipeResponse
     nutritions: Optional[List[NutritionResponse]]
     ingredients: Optional[List[IngredientResponse]]
-
 
 class InsufficientRecipeResponse(BaseModel):
     recipe: RecipeResponse
