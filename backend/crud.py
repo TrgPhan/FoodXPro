@@ -681,3 +681,28 @@ async def get_user_allergic_ingredients(user: users.Users):
         except Exception as e:
             print(f"Error fetching user allergic ingredient: {e}")
             return []
+
+
+async def get_user_health_conditions(user: users.Users):
+    async with AsyncSessionLocal() as db:
+        health_conditions_query = await db.execute(
+            select(healthConditions.HealthConditions.id)
+            .join(userHealthConditions.UserHealthConditions, healthConditions.HealthConditions.id == userHealthConditions.UserHealthConditions.health_condition_id)
+            .where(userHealthConditions.UserHealthConditions.user_id == user.id)
+        )
+        health_conditions = health_conditions_query.scalars().all()
+        return health_conditions
+
+
+async def get_affected_nutritions(health_condition_id: int):
+    async with AsyncSessionLocal() as db:
+        affected_nutritions_query = await db.execute(
+            select(nutritions.Nutritions.name,
+                   healthConditionAffectNutrition.HealthConditionAffectNutrition.adjusted_value)
+            .join(nutritions.Nutritions, healthConditionAffectNutrition.HealthConditionAffectNutrition.nutrition_id == nutritions.Nutritions.id)
+            .where(healthConditionAffectNutrition.HealthConditionAffectNutrition.health_condition_id == health_condition_id)
+        )
+        affected_nutritions = affected_nutritions_query.all()
+        affected_nutritions_dict = {row[0]: row[1]
+                                    for row in affected_nutritions}
+        return affected_nutritions_dict
