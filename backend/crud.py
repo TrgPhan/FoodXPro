@@ -5,6 +5,10 @@ from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 from sqlalchemy import delete
 from config import NUTRITION_UNITS
+from routers.profile.schemas import HealthCondition, Allergy, UserDataForm
+
+_cache_reicpes_ingredients = None
+_cache_recipes_nutrtions = None
 
 
 async def init_health_conditions(db):
@@ -337,3 +341,343 @@ async def init_db_data():
         await init_allergies(db)
         await init_health_conditions(db)
         print("Database initialization completed successfully!")
+
+
+async def get_user_ingredients(user: users.Users):
+    async with AsyncSessionLocal() as db:
+        user_ingredients = await db.execute(select(userIngredients.UserIngredients).where(userIngredients.UserIngredients.user_id == user.id))
+        user_ingredients = user_ingredients.scalars().all()
+        user_ingredient_list = [ui.ingredient_id for ui in user_ingredients]
+    return user_ingredient_list
+
+
+async def get_recipes_ingredients_data():
+    global _cache_reicpes_ingredients
+    if _cache_reicpes_ingredients is not None:
+        return _cache_reicpes_ingredients
+
+    async with AsyncSessionLocal() as db:
+        recipe_ingredients_query = await db.execute(
+            select(
+                recipes.Recipes.prep_time,
+                recipes.Recipes.cook_time,
+                recipes.Recipes.total_time,
+                recipes.Recipes.calories,
+                recipes.Recipes.fat,
+                recipes.Recipes.carbs,
+                recipes.Recipes.protein,
+                recipeIncludeIngredient.RecipeIncludeIngredient.recipe_id,
+                recipeIncludeIngredient.RecipeIncludeIngredient.ingredient_id,
+                recipeIncludeIngredient.RecipeIncludeIngredient.unit,
+                recipeIncludeIngredient.RecipeIncludeIngredient.amount,
+                ingredients.Ingredients.name.label('ingredient_name')
+            ).select_from(recipeIncludeIngredient.RecipeIncludeIngredient)
+            .join(ingredients.Ingredients, recipeIncludeIngredient.RecipeIncludeIngredient.ingredient_id == ingredients.Ingredients.id)
+            .join(recipes.Recipes, recipeIncludeIngredient.RecipeIncludeIngredient.recipe_id == recipes.Recipes.id)
+        )
+
+        recipe_ingredients_data = recipe_ingredients_query.all()
+
+        recipes_data = {}
+        for row in recipe_ingredients_data:
+            recipe_id = row.recipe_id
+            if recipe_id not in recipes_data:
+                recipes_data[recipe_id] = {
+                    'recipe_id': recipe_id,
+                    'prep_time': row.prep_time,
+                    'cook_time': row.cook_time,
+                    'total_time': row.total_time,
+                    'calories': row.calories,
+                    'protein': row.protein,
+                    'fat': row.fat,
+                    'carbs': row.carbs,
+                    'ingredients': []
+                }
+
+            recipes_data[recipe_id]['ingredients'].append({
+                'ingredient_id': row.ingredient_id,
+                'ingredient_name': row.ingredient_name,
+                'required_amount': row.amount or 1,
+                'unit': row.unit
+            })
+
+        _cache_reicpes_ingredients = recipes_data
+        print("Cache set")
+
+    return recipes_data
+
+
+async def get_recipe_nutrition_data(id: int):
+    async with AsyncSessionLocal() as db:
+        recipe_nutrition_query = await db.execute(
+            select(
+                recipeHaveNutrition.RecipeHaveNutrition.nutrition_id,
+                recipeHaveNutrition.RecipeHaveNutrition.value,
+                recipeHaveNutrition.RecipeHaveNutrition.percent,
+                nutritions.Nutritions.name.label('nutrition_name'),
+                nutritions.Nutritions.unit.label('nutrition_unit')
+            ).select_from(recipeHaveNutrition.RecipeHaveNutrition)
+            .join(nutritions.Nutritions, recipeHaveNutrition.RecipeHaveNutrition.nutrition_id == nutritions.Nutritions.id)
+            .where(recipeHaveNutrition.RecipeHaveNutrition.recipe_id == id)
+        )
+        recipe_nutrition_data = recipe_nutrition_query.all()
+        recipe_nutritions = []
+        for row in recipe_nutrition_data:
+            recipe_nutrition_dict = {
+                'id': row.nutrition_id,
+                'name': row.nutrition_name,
+                'unit': row.nutrition_unit,
+                'value': row.value,
+                'percent': row.percent
+            }
+            recipe_nutritions.append(recipe_nutrition_dict)
+        return recipe_nutritions
+
+
+async def get_recipes_data(id: int):
+    async with AsyncSessionLocal() as db:
+        recipe_query = await db.execute(select(recipes.Recipes).where(recipes.Recipes.id == id))
+        recipe_data = recipe_query.scalar()
+
+        if recipe_data is None:
+            raise ValueError(f"Recipe with id {id} not found")
+
+        recipe_data = {
+            'id': recipe_data.id,
+            'name': recipe_data.name,
+            'description': recipe_data.description,
+            'image_url': recipe_data.image_url,
+            'prep_time': recipe_data.prep_time,
+            'additional_time': recipe_data.additional_time,
+            'cook_time': recipe_data.cook_time,
+            'chill_time': recipe_data.chill_time,
+            'total_time': recipe_data.total_time,
+            'servings': recipe_data.servings,
+            'yields': recipe_data.yields,
+            'calories': recipe_data.calories,
+            'fat': recipe_data.fat,
+            'carbs': recipe_data.carbs,
+            'protein': recipe_data.protein
+        }
+        return recipe_data
+
+
+async def get_user_data(user: users.Users):
+    async with AsyncSessionLocal() as db:
+        # Get basic user data
+        user_query = await db.execute(
+            select(users.Users).where(users.Users.id == user.id)
+        )
+        user_data = user_query.scalar()
+
+        if user_data is None:
+            raise ValueError(f"User with id {user.id} not found")
+
+        # Get user's health conditions
+        health_conditions_query = await db.execute(
+            select(healthConditions.HealthConditions)
+            .join(userHealthConditions.UserHealthConditions, healthConditions.HealthConditions.id == userHealthConditions.UserHealthConditions.health_condition_id)
+            .where(userHealthConditions.UserHealthConditions.user_id == user.id)
+        )
+        health_conditions = health_conditions_query.scalars().all()
+
+        # Get user's allergies
+        allergies_query = await db.execute(
+            select(allergies.Allergies)
+            .join(userAllergies.UserAllergies, allergies.Allergies.id == userAllergies.UserAllergies.allergy_id)
+            .where(userAllergies.UserAllergies.user_id == user.id)
+        )
+        user_allergies = allergies_query.scalars().all()
+
+        return {
+            'id': user_data.id,
+            'full_name': user_data.full_name,
+            'age': user_data.age,
+            'weight': user_data.weight,
+            'height': user_data.height,
+            'goal': user_data.goal,
+            'sex': user_data.sex,
+            'activity_level': user_data.activity_level,
+            'health_conditions': [HealthCondition(id=hc.id, name=hc.name) for hc in health_conditions],
+            'allergies': [Allergy(id=a.id, name=a.name) for a in user_allergies]
+        }
+
+
+async def edit_user_data(user: users.Users, edit_form: UserDataForm):
+    async with AsyncSessionLocal() as db:
+        user_data = await db.execute(select(users.Users).where(users.Users.id == user.id))
+        user_data = user_data.scalar()
+        user_data.full_name = edit_form.full_name
+        user_data.age = edit_form.age
+        user_data.weight = edit_form.weight
+        user_data.height = edit_form.height
+        user_data.goal = edit_form.goal
+        user_data.sex = edit_form.sex
+        user_data.activity_level = edit_form.activity_level
+        await db.commit()
+
+        current_allergies_id = await db.execute(
+            select(userAllergies.UserAllergies.allergy_id)
+            .where(userAllergies.UserAllergies.user_id == user.id)
+        )
+        current_allergies_id = set(current_allergies_id.scalars().all())
+
+        new_allergies_id = await db.execute(
+            select(allergies.Allergies.id)
+            .where(allergies.Allergies.name.in_(edit_form.allergy))
+        )
+        new_allergies_id = set(new_allergies_id.scalars().all())
+
+        removed_allergies_id = current_allergies_id - new_allergies_id
+        if removed_allergies_id:
+            await db.execute(
+                delete(userAllergies.UserAllergies)
+                .where(userAllergies.UserAllergies.user_id == user.id)
+                .where(userAllergies.UserAllergies.allergy_id.in_(removed_allergies_id))
+            )
+
+        added_allergies_id = new_allergies_id - current_allergies_id
+        if added_allergies_id:
+            for allergy_id in added_allergies_id:
+                new_user_allergy = userAllergies.UserAllergies(
+                    user_id=user.id,
+                    allergy_id=allergy_id
+                )
+                db.add(new_user_allergy)
+
+        current_health_conditions_id = await db.execute(
+            select(userHealthConditions.UserHealthConditions.health_condition_id)
+            .where(userHealthConditions.UserHealthConditions.user_id == user.id)
+        )
+        current_health_conditions_id = set(
+            current_health_conditions_id.scalars().all())
+
+        new_health_conditions_id = await db.execute(
+            select(healthConditions.HealthConditions.id)
+            .where(healthConditions.HealthConditions.name.in_(edit_form.health_condition))
+        )
+        new_health_conditions_id = set(
+            new_health_conditions_id.scalars().all())
+
+        removed_health_conditions_id = current_health_conditions_id - new_health_conditions_id
+
+        if removed_health_conditions_id:
+            await db.execute(
+                delete(userHealthConditions.UserHealthConditions)
+                .where(userHealthConditions.UserHealthConditions.user_id == user.id)
+                .where(userHealthConditions.UserHealthConditions.health_condition_id.in_(removed_health_conditions_id))
+            )
+
+        added_health_conditions_id = new_health_conditions_id - current_health_conditions_id
+
+        if added_health_conditions_id:
+            for health_condition_id in added_health_conditions_id:
+                new_user_health_condition = userHealthConditions.UserHealthConditions(
+                    user_id=user.id,
+                    health_condition_id=health_condition_id
+                )
+                db.add(new_user_health_condition)
+
+        await db.commit()
+
+
+async def add_user_data(user: users.Users, add_form: UserDataForm):
+    async with AsyncSessionLocal() as db:
+        user = await db.execute(
+            select(users.Users)
+            .where(users.Users.id == user.id)
+        )
+        user = user.scalar()
+        user.full_name = add_form.full_name
+        user.age = add_form.age
+        user.weight = add_form.weight
+        user.height = add_form.height
+        user.goal = add_form.goal
+        user.sex = add_form.sex
+        user.activity_level = add_form.activity_level
+
+        # Store user_id before committing
+        user_id = user.id
+
+        await db.commit()
+
+        add_allergies_id = await db.execute(
+            select(allergies.Allergies.id)
+            .where(allergies.Allergies.name.in_(add_form.allergy))
+        )
+        add_allergies_id = set(add_allergies_id.scalars().all())
+        for allergy_id in add_allergies_id:
+            new_user_allergy = userAllergies.UserAllergies(
+                user_id=user_id,
+                allergy_id=allergy_id
+            )
+            db.add(new_user_allergy)
+
+        add_health_conditions_id = await db.execute(
+            select(healthConditions.HealthConditions.id)
+            .where(healthConditions.HealthConditions.name.in_(add_form.health_condition))
+        )
+        add_health_conditions_id = set(
+            add_health_conditions_id.scalars().all())
+        for health_condition_id in add_health_conditions_id:
+            new_user_health_condition = userHealthConditions.UserHealthConditions(
+                user_id=user_id,
+                health_condition_id=health_condition_id
+            )
+            db.add(new_user_health_condition)
+        await db.commit()
+
+
+async def get_recipes_nutritions_data():
+    global _cache_recipes_nutrtions
+    async with AsyncSessionLocal() as db:
+        if _cache_recipes_nutrtions is not None:
+            return _cache_recipes_nutrtions
+        recipes_nutritions_query = await db.execute(
+            select(
+                recipes.Recipes.id,
+                recipeHaveNutrition.RecipeHaveNutrition.nutrition_id,
+                recipeHaveNutrition.RecipeHaveNutrition.value,
+                recipeHaveNutrition.RecipeHaveNutrition.percent,
+                nutritions.Nutritions.name.label('nutrition_name'),
+                nutritions.Nutritions.unit.label('nutrition_unit')
+            ).select_from(recipeHaveNutrition.RecipeHaveNutrition)
+            .join(nutritions.Nutritions, recipeHaveNutrition.RecipeHaveNutrition.nutrition_id == nutritions.Nutritions.id)
+            .join(recipes.Recipes, recipeHaveNutrition.RecipeHaveNutrition.recipe_id == recipes.Recipes.id)
+        )
+        recipes_nutritions_data = recipes_nutritions_query.all()
+        recipes_nutritions = {}
+        for row in recipes_nutritions_data:
+            recipe_id = row.id
+            if recipe_id not in recipes_nutritions:
+                recipes_nutritions[recipe_id] = []
+
+            nutrition_data = {
+                'id': row.nutrition_id,
+                'name': row.nutrition_name,
+                'unit': row.nutrition_unit,
+                'value': row.value,
+                'percent': row.percent
+            }
+            recipes_nutritions[recipe_id].append(nutrition_data)
+
+        _cache_recipes_nutrtions = recipes_nutritions
+
+        return recipes_nutritions
+
+
+async def get_user_allergic_ingredients(user: users.Users):
+    async with AsyncSessionLocal() as db:
+        try:
+            user_allergies_query = await db.execute(
+                select(ingredientAllergies.IngredientAllergies.ingredient_id)
+                .select_from(userAllergies.UserAllergies)
+                .join(ingredientAllergies.IngredientAllergies, userAllergies.UserAllergies.allergy_id == ingredientAllergies.IngredientAllergies.allergy_id)
+                .where(userAllergies.UserAllergies.user_id == user.id)
+            )
+            user_allergic_ingredients = user_allergies_query.scalars().all()
+            return user_allergic_ingredients
+
+        except Exception as e:
+            print(f"Error fetching user allergic ingredient: {e}")
+            return []
