@@ -5,7 +5,7 @@ export const CACHE_TTL = 5 * 60 * 1000 // 5 minutes in milliseconds
 export const CACHE_CLEANUP_INTERVAL = 5 * 60 * 1000 // 5 minutes
 
 // Chat constants
-export const TYPING_SPEED = 50 // milliseconds per character
+export const TYPING_SPEED = 10 // milliseconds per character
 export const TYPING_DELAY = 1000 // delay before bot responds
 
 // Food suggestions

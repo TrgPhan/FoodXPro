@@ -6,14 +6,22 @@ import { useState, useEffect } from "react"
 import { Send, Bot, User, Square, Plus, Trash2, MessageCircle, Menu, MoreHorizontal } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Card } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import Header from "@/components/ui/header"
 import FoodCard from "@/components/food-card"
+import IngredientCard from "@/components/ingredient-card"
 import { chatSessionManager } from "@/lib/cache"
 import type { Message, ChatSession } from "@/lib/types"
-import { TASK_PROMPTS, FOOD_SUGGESTIONS, TYPING_SPEED, TYPING_DELAY } from "@/lib/constants"
+import { TYPING_SPEED, TYPING_DELAY } from "@/lib/constants"
 import { sendChatMessage } from "@/lib/chat"
+import { Card } from "@/components/ui/card"
+
+// Tool data interface for API responses
+interface ToolRaws {
+  tool: string
+  raws?: any
+  raw_data?: any
+}
 
 // Utility function to parse markdown-like formatting
 const parseMarkdown = (text: string) => {
@@ -29,7 +37,7 @@ const parseMarkdown = (text: string) => {
   return text
 }
 
-const taskPrompts = TASK_PROMPTS
+// const taskPrompts: any[] = [] // Removed legacy prompts
 
 export default function ChatScreen() {
   const [chatSessions, setChatSessions] = useState<ChatSession[]>([])
@@ -73,7 +81,324 @@ export default function ChatScreen() {
     }
   }, [messages, currentSessionId])
 
-  const foodSuggestions = FOOD_SUGGESTIONS
+  // Helper to render tool-specific data returned from API
+  const renderToolData = (tools?: ToolRaws[]) => {
+    if (!tools || tools.length === 0) return null
+
+    console.log("🔍 renderToolData called with:", tools)
+
+    // Handle the actual API response structure
+    // The API returns: { data: { tools: ["get_daily_meals"], raws: [{...}] } }
+    // But we're receiving the tools array directly
+    return tools.map((toolObj, idx) => {
+      // For the actual API response structure, we need to handle it differently
+      const toolName = (toolObj as any).tool || toolObj
+      const raws = (toolObj as any).raws || (toolObj as any).raw_data || toolObj
+      
+      console.log(`🔧 Processing tool: ${toolName}`, { toolObj, raws })
+      
+      switch (toolName) {
+          case "get_ingredients":
+            if (Array.isArray(raws)) {
+              return (
+                <div key={idx} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {raws.map((ing: any) => (
+                    <IngredientCard
+                      key={ing.id}
+                      id={typeof ing.id === 'string' ? parseInt(ing.id) : ing.id}
+                      name={ing.name}
+                      image={ing.image}
+                      add_date={ing.add_date}
+                      expire_date={ing.expire_date ?? ing.exprire_date}
+                    />
+                  ))}
+                </div>
+              )
+            }
+            return null
+
+          case "get_daily_meals":
+            // Handle the actual structure from API
+            const periods = ["breakfast", "lunch", "dinner", "snack"]
+            const mealsData = Array.isArray(raws) ? raws[0] : raws
+            
+            console.log("🍽️ get_daily_meals data:", { raws, mealsData })
+            
+            return (
+              <div key={idx} className="space-y-4">
+                {periods.map((p) => {
+                  const meals = mealsData[p]
+                  if (!meals || meals.length === 0) return null
+                  return (
+                    <div key={p}>
+                      <h4 className="font-semibold capitalize mb-2">{p}</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {meals.map((meal: any) => (
+                          <Card key={meal.id} className="p-4 bg-white hover:shadow-md transition-all duration-200">
+                            <div className="flex items-center gap-3">
+                              <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100">
+                                <img
+                                  src={meal.image || meal.image_url}
+                                  alt={meal.name}
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    const target = e.target as HTMLImageElement
+                                    target.style.display = 'none'
+                                  }}
+                                />
+                              </div>
+                              <div className="flex-1">
+                                <h4 className="font-medium text-gray-900 text-sm">{meal.name}</h4>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <div className="flex items-center gap-1">
+                                    <div className="w-2 h-2 bg-orange-400 rounded-full"></div>
+                                    <span className="text-xs text-gray-600 font-medium">{meal.calories || 0} kcal</span>
+                                  </div>
+                                  {meal.servings_eaten !== undefined && (
+                                    <div className="flex items-center gap-1">
+                                      <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                                      <span className="text-xs text-gray-600 font-medium">{meal.servings_eaten}x</span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )
+
+          case "get_sufficient_recipes":
+          case "get_insufficient_recipes":
+            // Handle the actual structure from API
+            const list = Array.isArray(raws) ? raws : [raws]
+            console.log("🍳 Recipe list data:", { toolName, list, raws })
+            console.log("🍳 First item structure:", list[0])
+            return (
+              <div key={idx} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {list.map((item: any) => {
+                  const recipe = item.recipe || item
+                  const nutritions = item.nutritions || []
+                  const ingredients = item.ingredients || []
+                  const missingIngredients = item.missing_ingredients || []
+                  const isAvailable = toolName !== "get_insufficient_recipes"
+                  
+                  console.log("🍳 Processing recipe:", { 
+                    recipe, 
+                    recipeImage: recipe?.image_url,
+                    nutritions, 
+                    ingredients, 
+                    missingIngredients, 
+                    isAvailable 
+                  })
+                  
+                  return (
+                    <FoodCard
+                      key={recipe.id}
+                      recipe={recipe}
+                      nutritions={nutritions}
+                      ingredients={ingredients}
+                      isAvailable={isAvailable}
+                      missingIngredients={missingIngredients}
+                    />
+                  )
+                })}
+              </div>
+            )
+
+          case "recipe_retrieve_tool":
+            // Handle recipe retrieval tool which returns text result
+            const result = raws.result || raws
+            console.log("📖 Recipe retrieve result:", { result })
+            
+            return (
+              <div key={idx} className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  <h4 className="font-semibold text-blue-900">Thông tin công thức</h4>
+                </div>
+                <div className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">
+                  {result}
+                </div>
+              </div>
+            )
+
+          case "get_daily_nutrition_gaps":
+            // Handle daily nutrition gaps tool
+            const nutritionData = raws
+            console.log("📊 Nutrition gaps data:", { nutritionData })
+            
+            const lackItems = nutritionData.lack || []
+            const excessItems = nutritionData.excess || []
+            
+            return (
+              <div key={idx} className="space-y-4">
+                {/* Lacking Nutrients */}
+                {lackItems.length > 0 && (
+                  <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                      <h4 className="font-semibold text-orange-900">Dinh dưỡng thiếu hụt</h4>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {lackItems.map((item: any, index: number) => (
+                        <div key={index} className="bg-white rounded-lg p-3 border border-orange-100">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="font-medium text-gray-900">{item.name}</span>
+                            <span className="text-sm text-orange-600 font-medium">
+                              {item.percent_achieved.toFixed(1)}%
+                            </span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
+                            <div 
+                              className="bg-orange-500 h-2 rounded-full transition-all duration-300"
+                              style={{ width: `${Math.min(item.percent_achieved, 100)}%` }}
+                            ></div>
+                          </div>
+                          <div className="flex justify-between text-xs text-gray-600">
+                            <span>Đã ăn: {item.consumed_value} {item.unit}</span>
+                            <span>Cần thêm: {item.remaining_value.toFixed(1)} {item.unit}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Excess Nutrients */}
+                {excessItems.length > 0 && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                      <h4 className="font-semibold text-red-900">Dinh dưỡng vượt quá</h4>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {excessItems.map((item: any, index: number) => (
+                        <div key={index} className="bg-white rounded-lg p-3 border border-red-100">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="font-medium text-gray-900">{item.name}</span>
+                            <span className="text-sm text-red-600 font-medium">
+                              {item.percent_achieved.toFixed(1)}%
+                            </span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
+                            <div 
+                              className="bg-red-500 h-2 rounded-full transition-all duration-300"
+                              style={{ width: `${Math.min(item.percent_achieved, 100)}%` }}
+                            ></div>
+                          </div>
+                          <div className="flex justify-between text-xs text-gray-600">
+                            <span>Đã ăn: {item.consumed_value} {item.unit}</span>
+                            <span>Vượt quá: {item.excess_value} {item.unit}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Summary */}
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                  <div className="text-sm text-gray-700">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-2 h-2 bg-gray-500 rounded-full"></div>
+                      <span className="font-medium">Tóm tắt</span>
+                    </div>
+                    <p>
+                      Bạn có <span className="font-medium text-orange-600">{lackItems.length}</span> dinh dưỡng thiếu hụt 
+                      {excessItems.length > 0 && (
+                        <> và <span className="font-medium text-red-600">{excessItems.length}</span> dinh dưỡng vượt quá</>
+                      )}
+                      . Hãy bổ sung thêm thực phẩm giàu dinh dưỡng để đạt mục tiêu hàng ngày.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )
+
+        case "suggest_meals_diverse":
+          const suggestionsData = raws
+          console.log("🍽️ Meal suggestions data:", { suggestionsData })
+          
+          // Group suggestions by meal period
+          const mealGroups: { [key: string]: any[] } = {
+            breakfast: [],
+            lunch: [],
+            dinner: [],
+            snack: []
+          }
+          
+          if (suggestionsData.suggestions) {
+            suggestionsData.suggestions.forEach((suggestion: any) => {
+              const meal = suggestion.meal.toLowerCase()
+              if (meal.includes('breakfast')) {
+                mealGroups.breakfast.push(suggestion)
+              } else if (meal.includes('lunch')) {
+                mealGroups.lunch.push(suggestion)
+              } else if (meal.includes('dinner')) {
+                mealGroups.dinner.push(suggestion)
+              } else if (meal.includes('snack')) {
+                mealGroups.snack.push(suggestion)
+              }
+            })
+          }
+          
+          const mealPeriods = [
+            { id: 'breakfast', label: 'Bữa sáng', icon: '🌅' },
+            { id: 'lunch', label: 'Bữa trưa', icon: '☀️' },
+            { id: 'dinner', label: 'Bữa tối', icon: '🌙' },
+            { id: 'snack', label: 'Bữa phụ', icon: '🍎' }
+          ]
+          
+          return (
+            <div key={idx} className="space-y-6">
+              {mealPeriods.map((period) => {
+                const suggestions = mealGroups[period.id]
+                if (!suggestions || suggestions.length === 0) return null
+                
+                return (
+                  <div key={period.id}>
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-lg">{period.icon}</span>
+                      <h4 className="font-semibold text-gray-900">{period.label}</h4>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                      {suggestions.map((suggestion: any) => {
+                        const recipe = suggestion.recipe
+                        const nutritions = suggestion.nutritions || []
+                        const missingIngredients = suggestion.missing_ingredients || []
+                        
+                        return (
+                          <FoodCard
+                            key={recipe.id}
+                            recipe={recipe}
+                            nutritions={nutritions}
+                            ingredients={[]}
+                            isAvailable={false}
+                            missingIngredients={missingIngredients}
+                          />
+                        )
+                      })}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )
+
+          default:
+            return (
+              <pre key={idx} className="bg-gray-50 p-4 rounded text-xs overflow-auto">
+                {JSON.stringify(raws, null, 2)}
+              </pre>
+            )
+      }
+    })
+  }
 
   const typeMessage = (messageId: string, text: string, callback?: () => void) => {
     // Clear any existing typing interval
@@ -122,7 +447,7 @@ export default function ChatScreen() {
 
   const addBotMessage = (
     text: string,
-    foodSuggestions?: Array<{ id: string; name: string; image: string; ingredients: string[] }>,
+    toolData?: ToolRaws[],
     delay = TYPING_DELAY,
   ) => {
     return new Promise<void>((resolve) => {
@@ -134,7 +459,7 @@ export default function ChatScreen() {
           isBot: true,
           timestamp: new Date(),
           isTyping: true,
-          foodSuggestions,
+          toolData,
         }
 
         setMessages((prev) => [...prev, botResponse])
@@ -167,17 +492,39 @@ export default function ChatScreen() {
     setShowTypingIndicator(true)
 
     try {
-      // Send message to API
-      const response = await sendChatMessage({
+      // Send message to API and get structured response
+      const chatResponse = await sendChatMessage({
         session_id: currentSessionId,
-        message: userMessage
+        message: userMessage,
       })
+
+      console.log("📡 Chat API response:", chatResponse)
 
       // Hide typing indicator
       setShowTypingIndicator(false)
 
-      // Add bot response with typing effect
-      await addBotMessage(response)
+      // Add bot response with typing effect and tool data if available
+      // Extract tool data from the API response structure
+      let toolData: ToolRaws[] | undefined
+      
+      if (chatResponse.data?.tools && chatResponse.data?.raws) {
+        // API returns: { data: { tools: ["get_daily_meals"], raws: [{...}] } }
+        const toolNames = Array.isArray(chatResponse.data.tools) ? chatResponse.data.tools : []
+        if (typeof toolNames[0] === 'string') {
+          toolData = (toolNames as string[]).map((toolName: string, idx: number) => ({
+            tool: toolName,
+            raws: chatResponse.data!.raws![idx] || chatResponse.data!.raws!
+          }))
+          console.log("🔧 Created toolData:", toolData)
+        } else {
+          toolData = toolNames as ToolRaws[]
+        }
+      } else if ((chatResponse as any).tools) {
+        // Fallback for old structure
+        toolData = (chatResponse as any).tools
+      }
+      
+      await addBotMessage(chatResponse.response, toolData)
     } catch (error) {
       console.error("Chat API error:", error)
       // Hide typing indicator
@@ -189,61 +536,8 @@ export default function ChatScreen() {
     }
   }
 
-  const handleTaskClick = async (task: (typeof taskPrompts)[0]) => {
-    const taskMessage: Message = {
-      id: `user-${Date.now()}-${Math.random()}`,
-      text: task.description,
-      isBot: false,
-      timestamp: new Date(),
-      isTyping: false,
-    }
-    setMessages((prev) => [...prev, taskMessage])
-
-    // Handle specific task responses
-    if (task.id === "1") {
-      // Gợi ý món ăn - show messages sequentially
-      try {
-        // First message
-        await addBotMessage(
-          "Bạn muốn **tăng cân**, **giảm cân** hay **giữ cân**? Tôi sẽ gợi ý các món ăn phù hợp cho bạn.",
-          undefined,
-          TYPING_DELAY,
-        )
-
-        // Second message with gain foods
-        await addBotMessage(
-          "🏋️ **Tăng cân**: Các món ăn giàu protein và calo để tăng cân lành mạnh:",
-          foodSuggestions.gain,
-          TYPING_DELAY,
-        )
-
-        // Third message with lose foods
-        await addBotMessage(
-          "🏃 **Giảm cân**: Các món ăn ít calo nhưng giàu dinh dưỡng để giảm cân hiệu quả:",
-          foodSuggestions.lose,
-          TYPING_DELAY,
-        )
-
-        // Fourth message with maintain foods
-        await addBotMessage(
-          "⚖️ **Giữ cân**: Các món ăn cân bằng để duy trì cân nặng ổn định:",
-          foodSuggestions.maintain,
-          TYPING_DELAY,
-        )
-      } catch (error) {
-        console.error("Error in sequential messaging:", error)
-      }
-    } else if (task.id === "2") {
-      // Hỏi cách nấu ăn
-      addBotMessage(
-        "Tôi có thể hướng dẫn bạn cách nấu nhiều món ăn khác nhau. Bạn muốn học nấu món gì? Hãy cho tôi biết tên món ăn và tôi sẽ hướng dẫn chi tiết từng bước.",
-      )
-    } else if (task.id === "3") {
-      // Tư vấn sức khỏe
-      addBotMessage(
-        "Tôi có thể tư vấn về **dinh dưỡng** và **sức khỏe** cho bạn. Bạn có thể hỏi về:\n\n• **Chế độ ăn uống lành mạnh**\n• **Cách tính toán calo hàng ngày**\n• **Lời khuyên về vitamin và khoáng chất**\n• **Thực đơn cho các mục tiêu sức khỏe cụ thể**\n\nBạn muốn tư vấn về vấn đề gì?",
-      )
-    }
+  const handleTaskClick = async (_task?: any) => {
+    // Legacy function stub
   }
 
   const handleNewChat = () => {
@@ -316,29 +610,7 @@ export default function ChatScreen() {
         />
 
         <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Task Prompts - Now inline in chat */}
-          {messages.length <= 1 && (
-            <div className="px-6 py-6 border-b border-gray-100/50 bg-gradient-to-b from-gray-50/30 to-transparent">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 tracking-tight">Gợi ý câu hỏi</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {taskPrompts.map((task) => (
-                  <Card
-                    key={task.id}
-                    className={`p-4 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.02] ${task.color} border-0 shadow-sm`}
-                    onClick={() => handleTaskClick(task)}
-                  >
-                    <div className="flex items-start gap-3">
-                      <span className="text-2xl">{task.icon}</span>
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-sm mb-1 text-gray-900">{task.title}</h3>
-                        <p className="text-xs text-gray-600 leading-relaxed">{task.description}</p>
-                      </div>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          )}
+          {/* Legacy task prompts removed */}
 
           <ScrollArea className="flex-1 overflow-y-auto">
             <div className="p-6 space-y-4">
@@ -388,37 +660,9 @@ export default function ChatScreen() {
                   </div>
 
                   {/* Food Suggestions - Show below each message that has them */}
-                  {message.foodSuggestions && !message.isTyping && (
+                  {!message.isTyping && (
                     <div className="mt-4 ml-11">
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {message.foodSuggestions.map((food) => (
-                          <FoodCard
-                            key={food.id}
-                            id={food.id}
-                            name={food.name}
-                            image={food.image}
-                            cookingTime="30 phút"
-                            difficulty="Dễ"
-                            isAvailable={true}
-                            calories={food.calories ?? 0}
-                            protein={food.protein ?? 0}
-                            carbs={food.carbs ?? 0}
-                            fat={food.fat ?? 0}
-                            onAdd={(id) => {
-                              console.log("Adding food to calendar:", id)
-                              // TODO: Implement add to calendar functionality
-                            }}
-                            onEdit={(id) => {
-                              console.log("Editing food:", id)
-                              // TODO: Implement edit functionality
-                            }}
-                            onDelete={(id) => {
-                              console.log("Deleting food:", id)
-                              // TODO: Implement delete functionality
-                            }}
-                          />
-                        ))}
-                      </div>
+                      {renderToolData(message.toolData)}
                     </div>
                   )}
                 </div>

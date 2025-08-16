@@ -4,8 +4,18 @@ export interface ChatRequest {
   message: string
 }
 
+export interface ToolRaws {
+  tool: string
+  raws: any
+}
+
 export interface ChatResponse {
   response: string
+  data?: {
+    tools: string[] | ToolRaws[]
+    raws?: any[]
+  }
+  tools?: ToolRaws[]
 }
 
 export interface ChatError {
@@ -20,13 +30,13 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8
 /**
  * Send a chat message to the AI assistant
  */
-export const sendChatMessage = async (request: ChatRequest): Promise<string> => {
+export const sendChatMessage = async (request: ChatRequest): Promise<ChatResponse> => {
   try {
     const data = await authenticatedRequest<ChatResponse>(`${API_BASE_URL}/api/chat`, {
       method: 'POST',
       body: JSON.stringify(request)
     })
-    return data.response
+    return data
   } catch (error) {
     if (error instanceof Error) {
       throw new Error(error.message)

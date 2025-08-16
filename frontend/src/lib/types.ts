@@ -6,6 +6,7 @@ export interface Message {
   timestamp: Date
   isTyping: boolean
   foodSuggestions?: FoodSuggestion[]
+  toolData?: any // Added toolData field
 }
 
 export interface ChatSession {
