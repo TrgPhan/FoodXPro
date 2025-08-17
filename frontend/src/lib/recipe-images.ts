@@ -65,15 +65,20 @@ export const getRecipeImage = async (recipe_id: number): Promise<string> => {
         finalUrl = `${API_BASE_URL}/${data}`
       }
     }
-    // Save to cache
-    imageCache.set(recipe_id, finalUrl)
-    persistCache()
+    // Only cache if it's not a placeholder
+    if (finalUrl !== '/placeholder.svg') {
+      imageCache.set(recipe_id, finalUrl)
+      persistCache()
+      console.log(`💾 Cached recipe image for ${recipe_id}:`, finalUrl)
+    } else {
+      console.log(`🚫 Not caching placeholder for recipe ${recipe_id}`)
+    }
     return finalUrl
   } catch (err) {
     console.error('Error fetch recipe image:', err)
     const fallback = '/placeholder.svg'
-    imageCache.set(recipe_id, fallback)
-    persistCache()
+    // Don't cache placeholder
+    console.log(`🚫 Not caching placeholder for recipe ${recipe_id} (error fallback)`)
     return fallback
   }
 }

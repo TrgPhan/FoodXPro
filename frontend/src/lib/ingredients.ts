@@ -218,16 +218,21 @@ export let getIngredientImage = async (ingredient_id: number): Promise<string> =
     }
 
     // Cache the result
-    imageCache.set(ingredient_id, finalUrl)
-    persistCache()
-    console.log(`💾 Cached image for ingredient ${ingredient_id}:`, finalUrl)
+    // Only cache if it's not a placeholder
+    if (finalUrl !== "/placeholder.svg") {
+      imageCache.set(ingredient_id, finalUrl)
+      persistCache()
+      console.log(`💾 Cached image for ingredient ${ingredient_id}:`, finalUrl)
+    } else {
+      console.log(`🚫 Not caching placeholder for ingredient ${ingredient_id}`)
+    }
     
     return finalUrl
   } catch (error) {
     console.error('Error fetching ingredient image:', error)
     const fallbackUrl = "/placeholder.svg"
-    imageCache.set(ingredient_id, fallbackUrl)
-    persistCache()
+    // Don't cache placeholder
+    console.log(`🚫 Not caching placeholder for ingredient ${ingredient_id} (error fallback)`)
     return fallbackUrl
   }
 }

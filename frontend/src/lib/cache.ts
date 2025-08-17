@@ -15,7 +15,7 @@ class Cache {
 
   get<T>(key: string): T | null {
     const item = this.cache.get(key)
-    
+
     if (!item) {
       return null
     }
@@ -32,7 +32,7 @@ class Cache {
 
   has(key: string): boolean {
     const item = this.cache.get(key)
-    
+
     if (!item) {
       return false
     }
@@ -90,7 +90,7 @@ class Cache {
   // Clean expired items
   cleanup(): void {
     const now = Date.now()
-    
+
     for (const [key, item] of this.cache.entries()) {
       if (now - item.timestamp > item.ttl) {
         this.cache.delete(key)
@@ -191,6 +191,7 @@ export class ChatSessionManager {
       ],
       createdAt: new Date(),
       updatedAt: new Date(),
+      toolData: null
     }
 
     const sessions = this.getAllSessions()
@@ -355,7 +356,7 @@ export class AppDataCache {
     let paramString = 'default'
     try {
       paramString = encodeURIComponent(JSON.stringify(params || {}))
-    } catch (_) {}
+    } catch (_) { }
     return `${prefix}${paramString}`
   }
 
@@ -462,12 +463,12 @@ export class AppDataCache {
 export const preloadAppData = async (): Promise<void> => {
   try {
     console.log('🚀 Starting app data preload...')
-    
+
     const { getIngredients } = await import('./ingredients')
     const { getUserProfile } = await import('./profile')
     const { preloadTodayMeals } = await import('./daily-meals')
     const { getSufficientRecipes, getInsufficientRecipes } = await import('./food')
-    
+
     // Load data in parallel
     const [ingredients, profile, todayMeals, _sufficientRecipes, _insufficientRecipes] = await Promise.allSettled([
       getIngredients(),
@@ -476,26 +477,26 @@ export const preloadAppData = async (): Promise<void> => {
       getSufficientRecipes({}),
       getInsufficientRecipes({ num_missing: 1, num_recipes: 100 })
     ])
-    
+
     // Cache successful results
     if (ingredients.status === 'fulfilled') {
       appDataCache.saveIngredients(ingredients.value)
     } else {
       console.warn('Failed to preload ingredients:', ingredients.reason)
     }
-    
+
     if (profile.status === 'fulfilled') {
       appDataCache.saveProfile(profile.value)
     } else {
       console.warn('Failed to preload profile:', profile.reason)
     }
-    
+
     if (todayMeals.status === 'fulfilled') {
       console.log('✅ Today\'s meals preloaded successfully')
     } else {
       console.warn('Failed to preload today\'s meals:', todayMeals.reason)
     }
-    
+
     console.log('✅ App data preload completed')
   } catch (error) {
     console.error('❌ App data preload failed:', error)
