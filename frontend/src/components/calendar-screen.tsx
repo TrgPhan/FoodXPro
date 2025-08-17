@@ -47,7 +47,9 @@ export default function CalendarScreen() {
     const today = new Date()
     const currentDayOfWeek = today.getDay() // 0 = Sunday, 1 = Monday, etc.
     const startOfWeek = new Date(today)
-    startOfWeek.setDate(today.getDate() - currentDayOfWeek + 1) // Start from Monday
+    // Calculate distance to Monday (consider Sunday as end of the week)
+    const diffToMonday = currentDayOfWeek === 0 ? -6 : 1 - currentDayOfWeek
+    startOfWeek.setDate(today.getDate() + diffToMonday) // Start from Monday of current week
 
     const weekDates: Date[] = []
     for (let i = 0; i < 7; i++) {
@@ -75,6 +77,14 @@ export default function CalendarScreen() {
     }
   }, [selectedDate, fetchDailyMeals])
 
+  // Sync calendar popup with selected day
+  useEffect(() => {
+    if (selectedDate) {
+      const [year, month, day] = selectedDate.split('-').map(Number)
+      const date = new Date(year, month - 1, day)
+      setSelectedCalendarDate(date)
+    }
+  }, [selectedDate])
 
 
   // Generate week days data

@@ -17,7 +17,7 @@ import ProfileScreen from "@/components/profile-screen"
 
 const navigationItems = [
   { id: "storage", label: "KHO NGUYÊN LIỆU", icon: Package, color: "text-green-600", requireAuth: true },
-  { id: "food", label: "THỰC ĐƠN", icon: UtensilsCrossed, color: "text-orange-600", requireAuth: true },
+  { id: "food", label: "KHÁM PHÁ MÓN ĂN", icon: UtensilsCrossed, color: "text-orange-600", requireAuth: true },
   { id: "chat", label: "CHATBOT GỢI Ý", icon: MessageCircle, color: "text-blue-600", requireAuth: true },
   { id: "calendar", label: "LỊCH ĂN UỐNG", icon: Calendar, color: "text-red-600", requireAuth: true },
   { id: "profile", label: "HỒ SƠ SỨC KHỎE", icon: User, color: "text-purple-600", requireAuth: true },

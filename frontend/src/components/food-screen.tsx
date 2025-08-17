@@ -176,7 +176,7 @@ export default function FoodScreen() {
     <div className="h-full bg-white flex flex-col">
       <Header
         icon={Utensils}
-        title="Thực Đơn"
+        title="Khám Phá Món Ăn"
         subtitle="Khám phá các món ăn bạn có thể làm"
         gradientFrom="from-orange-500"
         gradientTo="to-amber-600"

@@ -1,6 +1,7 @@
 "use client"
 
 import { authenticatedRequest } from './auth'
+import { appDataCache } from './cache'
 
 let API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
 
@@ -86,6 +87,11 @@ export interface GetInsufficientRecipesParams {
 // Get sufficient recipes
 export let getSufficientRecipes = async (params?: GetSufficientRecipesParams): Promise<RecipeWithDetails[]> => {
   try {
+    // Try cache first
+    const cached = appDataCache.getCachedSufficientRecipes(params || {})
+    if (cached) {
+      return cached
+    }
     let queryParams = new URLSearchParams()
     
     if (params?.sort_by) queryParams.append('sort_by', params.sort_by)
@@ -98,6 +104,9 @@ export let getSufficientRecipes = async (params?: GetSufficientRecipesParams): P
     }
 
     let data = await authenticatedRequest<RecipeWithDetails[]>(url, { method: 'GET' })
+    if (Array.isArray(data)) {
+      appDataCache.saveSufficientRecipes(data, params || {})
+    }
     return Array.isArray(data) ? data : []
   } catch (error) {
     console.error('Error fetching sufficient recipes:', error)
@@ -108,6 +117,10 @@ export let getSufficientRecipes = async (params?: GetSufficientRecipesParams): P
 // Get insufficient recipes  
 export let getInsufficientRecipes = async (params: GetInsufficientRecipesParams): Promise<InsufficientRecipeWithDetails[]> => {
   try {
+    const cached = appDataCache.getCachedInsufficientRecipes(params || {})
+    if (cached) {
+      return cached
+    }
     let queryParams = new URLSearchParams()
     
     queryParams.append('num_missing', params.num_missing.toString())
@@ -118,6 +131,9 @@ export let getInsufficientRecipes = async (params: GetInsufficientRecipesParams)
     let url = `${API_BASE_URL}/recipes/get-insufficient-recipes?${queryParams.toString()}`
 
     let data = await authenticatedRequest<InsufficientRecipeWithDetails[]>(url, { method: 'GET' })
+    if (Array.isArray(data)) {
+      appDataCache.saveInsufficientRecipes(data, params || {})
+    }
     return Array.isArray(data) ? data : []
   } catch (error) {
     console.error('Error fetching insufficient recipes:', error)

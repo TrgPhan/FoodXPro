@@ -1,5 +1,6 @@
 import { authenticatedRequest } from './auth'
 import { ApiResponse } from './types'
+import { appDataCache } from './cache'
 
 let API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
 
@@ -68,6 +69,7 @@ export let addIngredient = async (ingredientData: AddIngredientParams): Promise<
       method: 'POST',
       body: JSON.stringify(ingredientData)
     })
+    appDataCache.invalidateRecipes()
     return data
   } catch (error) {
     console.error('Error adding ingredient:', error)
@@ -81,6 +83,7 @@ export let deleteIngredient = async (id: number): Promise<ApiResponse> => {
     let data = await authenticatedRequest<ApiResponse>(`${API_BASE_URL}/ingredients/delete/${id}`, {
       method: 'DELETE'
     })
+    appDataCache.invalidateRecipes()
     return data
   } catch (error) {
     console.error('Error deleting ingredient:', error)
@@ -95,6 +98,7 @@ export let editIngredient = async (ingredientData: EditIngredientParams): Promis
       method: 'PUT',
       body: JSON.stringify(ingredientData)
     })
+    appDataCache.invalidateRecipes()
     return data
   } catch (error) {
     console.error('Error editing ingredient:', error)
@@ -119,8 +123,43 @@ export let searchIngredients = async (name: string, limit: number = 10): Promise
   }
 }
 
-// Image cache to avoid repeated API calls
+// ---------------------------------------------------------------------------
+// 🔄 Ingredient Image Cache (persistent across sessions)
+// ---------------------------------------------------------------------------
+
+const INGREDIENT_IMAGE_CACHE_KEY = 'ingredientImageCache'
+
+// In-memory map for quick look-ups
 const imageCache = new Map<number, string>()
+
+// Load any previously persisted cache from localStorage
+if (typeof window !== 'undefined') {
+  try {
+    const stored = localStorage.getItem(INGREDIENT_IMAGE_CACHE_KEY)
+    if (stored) {
+      const parsed: [number, string][] = JSON.parse(stored)
+      parsed.forEach(([id, url]) => imageCache.set(id, url))
+    }
+  } catch (err) {
+    console.warn('Failed to parse ingredient image cache from storage', err)
+  }
+
+  // Clear cache automatically on auth change (logout triggers this event)
+  window.addEventListener('auth-change', () => {
+    clearImageCache()
+  })
+}
+
+// Persist the in-memory cache to localStorage
+const persistCache = () => {
+  if (typeof window === 'undefined') return
+  try {
+    const arr = Array.from(imageCache.entries())
+    localStorage.setItem(INGREDIENT_IMAGE_CACHE_KEY, JSON.stringify(arr))
+  } catch (err) {
+    console.warn('Failed to persist ingredient image cache', err)
+  }
+}
 
 // Get ingredient image by ingredient_id with caching
 export let getIngredientImage = async (ingredient_id: number): Promise<string> => {
@@ -180,6 +219,7 @@ export let getIngredientImage = async (ingredient_id: number): Promise<string> =
 
     // Cache the result
     imageCache.set(ingredient_id, finalUrl)
+    persistCache()
     console.log(`💾 Cached image for ingredient ${ingredient_id}:`, finalUrl)
     
     return finalUrl
@@ -187,6 +227,7 @@ export let getIngredientImage = async (ingredient_id: number): Promise<string> =
     console.error('Error fetching ingredient image:', error)
     const fallbackUrl = "/placeholder.svg"
     imageCache.set(ingredient_id, fallbackUrl)
+    persistCache()
     return fallbackUrl
   }
 }
@@ -194,7 +235,10 @@ export let getIngredientImage = async (ingredient_id: number): Promise<string> =
 // Clear image cache (useful for testing or memory management)
 export let clearImageCache = (): void => {
   imageCache.clear()
-  console.log('🗑️ Image cache cleared')
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem(INGREDIENT_IMAGE_CACHE_KEY)
+  }
+  console.log('🗑️ Ingredient image cache cleared')
 }
 
 // Get cached image without API call

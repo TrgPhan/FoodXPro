@@ -265,6 +265,9 @@ export class AppDataCache {
   private readonly CACHE_VERSION_KEY = 'foodxpro_cache_version'
   private readonly CURRENT_VERSION = '1.0'
   private readonly CACHE_TTL = 5 * 60 * 1000 // 5 minutes in milliseconds - reduced for faster refresh
+  // 🔥 Recipe cache prefixes
+  private readonly SUFFICIENT_RECIPES_PREFIX = 'foodxpro_sufficient_recipes_'
+  private readonly INSUFFICIENT_RECIPES_PREFIX = 'foodxpro_insufficient_recipes_'
 
   // Check if cache item is valid (not expired)
   private isCacheItemValid(item: any): boolean {
@@ -345,6 +348,65 @@ export class AppDataCache {
     return profile
   }
 
+  // ------------------------------------------------------------------
+  // Recipe caching
+  // ------------------------------------------------------------------
+  private generateRecipesKey(prefix: string, params: any = {}): string {
+    let paramString = 'default'
+    try {
+      paramString = encodeURIComponent(JSON.stringify(params || {}))
+    } catch (_) {}
+    return `${prefix}${paramString}`
+  }
+
+  // Sufficient recipes
+  saveSufficientRecipes(recipes: any[], params: any = {}): void {
+    const key = this.generateRecipesKey(this.SUFFICIENT_RECIPES_PREFIX, params)
+    this.saveToStorage(key, recipes)
+    console.log('📦 Sufficient recipes cached:', recipes.length, 'items')
+  }
+
+  getCachedSufficientRecipes(params: any = {}): any[] | null {
+    const key = this.generateRecipesKey(this.SUFFICIENT_RECIPES_PREFIX, params)
+    const data = this.getFromStorage<any[]>(key)
+    if (data) {
+      console.log('✅ Using cached sufficient recipes:', data.length, 'items')
+    }
+    return data
+  }
+
+  // Insufficient recipes
+  saveInsufficientRecipes(recipes: any[], params: any = {}): void {
+    const key = this.generateRecipesKey(this.INSUFFICIENT_RECIPES_PREFIX, params)
+    this.saveToStorage(key, recipes)
+    console.log('📦 Insufficient recipes cached:', recipes.length, 'items')
+  }
+
+  getCachedInsufficientRecipes(params: any = {}): any[] | null {
+    const key = this.generateRecipesKey(this.INSUFFICIENT_RECIPES_PREFIX, params)
+    const data = this.getFromStorage<any[]>(key)
+    if (data) {
+      console.log('✅ Using cached insufficient recipes:', data.length, 'items')
+    }
+    return data
+  }
+
+  // Invalidate recipe cache
+  invalidateRecipes(): void {
+    if (typeof window === 'undefined') return
+    const keysToRemove: string[] = []
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i)
+      if (k && (k.startsWith(this.SUFFICIENT_RECIPES_PREFIX) || k.startsWith(this.INSUFFICIENT_RECIPES_PREFIX))) {
+        keysToRemove.push(k)
+      }
+    }
+    keysToRemove.forEach(k => localStorage.removeItem(k))
+    if (keysToRemove.length) {
+      console.log('🗑️ Recipes cache invalidated')
+    }
+  }
+
   // Clear all app data from persistent storage
   clearAppData(): void {
     this.removeFromStorage(this.INGREDIENTS_KEY)
@@ -371,6 +433,9 @@ export class AppDataCache {
     } else if (key === 'app_profile') {
       this.removeFromStorage(this.PROFILE_KEY)
       console.log('🗑️ Profile cache invalidated')
+    } else if (key === 'app_recipes') {
+      this.invalidateRecipes()
+      console.log('🗑️ Recipes cache invalidated')
     }
   }
 
@@ -401,12 +466,15 @@ export const preloadAppData = async (): Promise<void> => {
     const { getIngredients } = await import('./ingredients')
     const { getUserProfile } = await import('./profile')
     const { preloadTodayMeals } = await import('./daily-meals')
+    const { getSufficientRecipes, getInsufficientRecipes } = await import('./food')
     
     // Load data in parallel
-    const [ingredients, profile, todayMeals] = await Promise.allSettled([
+    const [ingredients, profile, todayMeals, _sufficientRecipes, _insufficientRecipes] = await Promise.allSettled([
       getIngredients(),
       getUserProfile(),
-      preloadTodayMeals()
+      preloadTodayMeals(),
+      getSufficientRecipes({}),
+      getInsufficientRecipes({ num_missing: 1, num_recipes: 100 })
     ])
     
     // Cache successful results
