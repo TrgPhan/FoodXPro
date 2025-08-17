@@ -157,19 +157,38 @@ const UserProfileForm = ({ isOpen, onClose, onSuccess, isEdit = false, initialDa
 
   const handleSubmit = async () => {
     try {
-      // Convert form data to API format
-      const apiData = {
-        full_name: formData.full_name,
-        age: formData.age,
-        sex: formData.sex,
-        weight: formData.weight,
-        height: formData.height,
-        goal: formData.goal,
-        activity_level: formData.activity_level,
-        allergy: formData.allergies.map(allergy => allergy.name), // Convert to array of strings
-        health_condition: formData.health_conditions.map(condition => condition.name) // Convert to array of strings
+      // Build API data intelligently to avoid overwriting with defaults
+      const base: any = isEdit && initialData ? { ...initialData } : {}
+
+      const apiData: any = {
+        ...base,
+        // Only include fields that have meaningful values (non-empty / >0)
       }
-      
+
+      const setIfValid = (key: string, value: any) => {
+        if (value !== undefined && value !== null) {
+          if (typeof value === 'string') {
+            if (value.trim() !== '') apiData[key] = value.trim()
+          } else if (typeof value === 'number') {
+            if (value > 0) apiData[key] = value
+          } else {
+            apiData[key] = value
+          }
+        }
+      }
+
+      setIfValid('full_name', formData.full_name)
+      setIfValid('age', formData.age)
+      setIfValid('sex', formData.sex)
+      setIfValid('weight', formData.weight)
+      setIfValid('height', formData.height)
+      setIfValid('goal', formData.goal)
+      setIfValid('activity_level', formData.activity_level)
+
+      // Always set allergies/health conditions arrays
+      apiData.allergy = formData.allergies.map(a => a.name)
+      apiData.health_condition = formData.health_conditions.map(h => h.name)
+       
       if (isEdit) {
         await editUserProfile(apiData)
       } else {
