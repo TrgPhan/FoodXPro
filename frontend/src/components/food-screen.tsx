@@ -55,7 +55,7 @@ export default function FoodScreen() {
     },
     initialInsufficientParams: {
       num_missing: 1,
-      num_recipes: 100,
+      num_recipes: 10,
       sort_by: "total_time",
       sort_order: "asc"
     }
