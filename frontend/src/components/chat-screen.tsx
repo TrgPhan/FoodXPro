@@ -500,9 +500,17 @@ export default function ChatScreen() {
       // Extract tool data from the API response structure
       let toolData: ToolRaws[] | undefined
       
+      console.log("🔍 Full chat response structure:", chatResponse)
+      console.log("🔍 chatResponse.data:", chatResponse.data)
+      console.log("🔍 chatResponse.data?.tools:", chatResponse.data?.tools)
+      console.log("🔍 chatResponse.data?.raws:", chatResponse.data?.raws)
+      
       if (chatResponse.data?.tools && chatResponse.data?.raws) {
         // API returns: { data: { tools: ["get_daily_meals"], raws: [{...}] } }
         const toolNames = Array.isArray(chatResponse.data.tools) ? chatResponse.data.tools : []
+        console.log("🔧 Tool names:", toolNames)
+        console.log("🔧 Raw data:", chatResponse.data.raws)
+        
         if (typeof toolNames[0] === 'string') {
           toolData = (toolNames as string[]).map((toolName: string, idx: number) => ({
             tool: toolName,
@@ -515,7 +523,10 @@ export default function ChatScreen() {
       } else if ((chatResponse as any).tools) {
         // Fallback for old structure
         toolData = (chatResponse as any).tools
+        console.log("🔧 Using fallback toolData:", toolData)
       }
+      
+      console.log("🔧 Final toolData for rendering:", toolData)
       
       await addBotMessage(chatResponse.response, toolData)
     } catch (error) {
@@ -601,6 +612,70 @@ export default function ChatScreen() {
           gradientFrom="from-blue-500"
           gradientTo="to-indigo-600"
         />
+
+        {/* Chatbot Capabilities Description - Only show when no messages */}
+        {messages.length <= 1 && (
+          <div className="px-6 py-4 border-b border-gray-100">
+          <div className="max-w-4xl mx-auto text-center">
+            {/* Main Title */}
+            <div className="mb-4">
+              <h2 className="text-xl font-bold text-gray-900 mb-2">🤖 Tôi có thể giúp bạn</h2>
+              <p className="text-gray-600">Khám phá những gì AI có thể làm cho bạn</p>
+            </div>
+
+            {/* Capabilities Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div className="p-3 text-center bg-white">
+                <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center mx-auto mb-2">
+                  <span className="text-xl">🍳</span>
+                </div>
+                <h3 className="font-semibold text-gray-900 mb-1 text-sm">Gợi ý món ăn</h3>
+                <p className="text-xs text-gray-600">Dựa trên nguyên liệu có sẵn trong tủ lạnh của bạn</p>
+              </div>
+
+              <div className="p-3 text-center bg-white">
+                <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-red-600 rounded-xl flex items-center justify-center mx-auto mb-2">
+                  <span className="text-xl">📊</span>
+                </div>
+                <h3 className="font-semibold text-gray-900 mb-1 text-sm">Phân tích dinh dưỡng</h3>
+                <p className="text-xs text-gray-600">Kiểm tra khoảng trống dinh dưỡng hàng ngày</p>
+              </div>
+
+              <div className="p-3 text-center bg-white">
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-xl flex items-center justify-center mx-auto mb-2">
+                  <span className="text-xl">📋</span>
+                </div>
+                <h3 className="font-semibold text-gray-900 mb-1 text-sm">Quản lý thực phẩm</h3>
+                <p className="text-xs text-gray-600">Xem danh sách nguyên liệu và bữa ăn</p>
+              </div>
+
+              <div className="p-3 text-center bg-white">
+                <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center mx-auto mb-2">
+                  <span className="text-xl">👨‍🍳</span>
+                </div>
+                <h3 className="font-semibold text-gray-900 mb-1 text-sm">Hướng dẫn nấu ăn</h3>
+                <p className="text-xs text-gray-600">Công thức chi tiết và tư vấn sức khỏe</p>
+              </div>
+
+              <div className="p-3 text-center bg-white">
+                <div className="w-10 h-10 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-xl flex items-center justify-center mx-auto mb-2">
+                  <span className="text-xl">🍽️</span>
+                </div>
+                <h3 className="font-semibold text-gray-900 mb-1 text-sm">Thực đơn đa dạng</h3>
+                <p className="text-xs text-gray-600">Đề xuất bữa ăn cân bằng và phong phú</p>
+              </div>
+
+              <div className="p-3 text-center bg-white">
+                <div className="w-10 h-10 bg-gradient-to-br from-teal-500 to-green-600 rounded-xl flex items-center justify-center mx-auto mb-2">
+                  <span className="text-xl">✅</span>
+                </div>
+                <h3 className="font-semibold text-gray-900 mb-1 text-sm">Kiểm tra công thức</h3>
+                <p className="text-xs text-gray-600">Xem món nào có thể làm với nguyên liệu hiện có</p>
+              </div>
+            </div>
+          </div>
+          </div>
+        )}
 
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Legacy task prompts removed */}

@@ -6,6 +6,7 @@ export interface Message {
   timestamp: Date
   isTyping: boolean
   foodSuggestions?: FoodSuggestion[]
+  toolData?: any
 }
 
 export interface ChatSession {
@@ -14,6 +15,7 @@ export interface ChatSession {
   messages: Message[]
   createdAt: Date
   updatedAt: Date
+  toolData: any
 }
 
 export interface FoodItem {
