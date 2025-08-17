@@ -30,6 +30,64 @@ It uses **Artificial Intelligence (AI)** to analyze individual needs, preference
 - Comprehensive management from ingredients to meal plans.  
 - User-friendly and intuitive interface.
 
+## Usage
+
+### Run the Backend
+
+Follow these steps to get the backend server running:
+
+1.  Navigate to the `backend` directory:
+    ```bash
+    cd backend
+    ```
+2.  Create and activate a new Python virtual environment:
+    ```bash
+    python -m venv venv
+    source venv/bin/activate  # On macOS/Linux
+    venv\Scripts\activate     # On Windows
+    ```
+3.  Install the required dependencies:
+    ```bash
+    pip install -r requirements.txt
+    ```
+4.  Uncomment the `init_db_chroma` function call in `main.py` if this is your first time running the application to initialize the database.
+5.  Start the server using Uvicorn:
+    ```bash
+    uvicorn main:app --host 0.0.0.0 --port 8000
+    ```
+    This will start the backend server, and it will be accessible at `http://localhost:8000`.
+
+---
+
+### Run the Frontend
+
+To run the frontend, follow these steps:
+
+1.  Ensure you have **npm** installed on your system.
+2.  Navigate to the `frontend` directory:
+    ```bash
+    cd frontend
+    ```
+3.  Install the project dependencies:
+    ```bash
+    npm install
+    ```
+4.  Start the development server:
+    ```bash
+    npm run dev
+    ```
+    This will start the frontend development server.
+
+---
+
+### Access the Local Web Page
+
+Once both the backend and frontend are running, open your web browser and navigate to:
+
+[http://localhost:3000](http://localhost:3000)
+
+The application should now be fully accessible and operational. 🚀
+
 ## Development Team
 
 **TechXPro**  
