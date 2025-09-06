@@ -1,0 +1,20 @@
+services:
+  backend:
+    # build: 
+    #   context: ./backend
+    #   dockerfile: dockerfile
+    image: nctrinh/foodxpro-backend:latest
+    container_name: foodxpro-backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+  
+  frontend:
+    # build: 
+    #   context: ./frontend
+    #   dockerfile: Dockerfile
+    image: nctrinh/foodxpro-frontend:latest
+    container_name: foodxpro-frontend
+    ports:
+      - "3000:3000"
