@@ -32,21 +32,32 @@ It uses **Artificial Intelligence (AI)** to analyze individual needs, preference
 
 ##  Usage (Dockerized Version)
 
-### 1. Chuẩn bị môi trường
+### 1. Clone repo
+- Clone repo về máy sử dụng git:
+```bash
+git clone https://github.com/TrgPhan/FoodXPro.git
+```
+### 2. Chuẩn bị môi trường
 - Cài đặt [Docker](https://www.docker.com/) và [Docker Compose](https://docs.docker.com/compose/).
+- Tạo môi trường ảo và cài đặt dependences:
+  ```bash
+  python -m venv .venv
+  .venv\Scripts\activate
+  pip install -r backend\requirements.txt
+  ```
 - Tạo file `.env` từ mẫu có sẵn:
   ```bash
   cp .env.example .env
   ```
-### 2. Chạy ứng dụng
+### 3. Chạy ứng dụng
 - Từ thư mục gốc của project, chạy:
   ```bash
   docker compose up -d
   ```
-### 3. Truy cập ứng dụng
+### 4. Truy cập ứng dụng
   Backend API: http://localhost:8000
   Frontend: http://localhost:3000
-### 4. Quản lý container
+### 5. Quản lý container
 - Dừng ứng dụng:
   ```bash
   docker compose down
