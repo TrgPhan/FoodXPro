@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+
+.gitignore
+API_endpoint.md
+data/link_data_without_appdb.txt
+
+.vscode/
+.idea/
+
+*.log
